@@ -114,6 +114,9 @@ impl<'a> Parser<'a> {
     fn expect_sym(&mut self, s: &str) -> PResult<Span> {
         if self.at_sym(s) {
             Ok(self.advance().span)
+        } else if s == ";" && self.pos > 0 {
+            Err(Diagnostic::error(self.prev_span(), "falta `;` al final de la sentencia")
+                .with_label("se esperaba `;` justo después de esto"))
         } else {
             Err(self.unexpected(&format!("`{s}`")))
         }

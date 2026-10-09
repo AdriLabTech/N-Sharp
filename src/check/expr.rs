@@ -546,6 +546,15 @@ impl Checker {
                 let rt = self.check_expr(r, Some(&lt));
                 let (sl, sr) = (self.shallow(&lt), self.shallow(&rt));
                 if sl.is_error() || sr.is_error() { return Ty::Error; }
+                if matches!(op, Add | Sub) && matches!(sl, Ty::Ptr(_)) && self.can_coerce(&rt, &Ty::Int) {
+                    if !self.in_unsafe() {
+                        self.diags.push(
+                            Diagnostic::error(span, "la aritmética de punteros requiere `unsafe`")
+                                .with_label("operación peligrosa fuera de `unsafe`"),
+                        );
+                    }
+                    return lt;
+                }
                 if op == Add && sl == Ty::Str && matches!(sr, Ty::Str | Ty::Char) {
                     return Ty::Str;
                 }

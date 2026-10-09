@@ -39,6 +39,12 @@ impl Checker {
                 if let Some(k) = self.lookup_type(self.cur_module, n) {
                     return Head::Type(k);
                 }
+                // los módulos de la biblioteca estándar se pueden usar sin `import`
+                if let Some(&m) = self.mod_index.get(n.as_str()) {
+                    if self.mod_std[m] && m != 0 {
+                        return Head::Module(m);
+                    }
+                }
                 Head::Value
             }
             ExprKind::Field(b, n) => match self.head_of(b) {

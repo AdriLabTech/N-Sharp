@@ -48,6 +48,35 @@ pub struct SourceConfig {
     pub memory: HashMap<String, (String, String)>,
 }
 
+/// Nombres de módulos estándar que aparecen como identificadores en el código.
+fn used_std_modules(ast: &Module) -> Vec<String> {
+    let mut found: Vec<String> = vec![];
+    let mut visit = |e: &crate::ast::Expr| {
+        if let crate::ast::ExprKind::Ident(n) = &e.kind {
+            if STD_MODULES.contains(&n.as_str()) && !found.contains(n) {
+                found.push(n.clone());
+            }
+        }
+    };
+    for it in &ast.items {
+        match &it.kind {
+            ItemKind::Fn(f) => if let Some(b) = &f.body { b.walk(&mut visit) },
+            ItemKind::Impl(i) => for m in &i.methods { if let Some(b) = &m.body { b.walk(&mut visit) } },
+            ItemKind::Trait(t) => for m in &t.methods { if let Some(b) = &m.body { b.walk(&mut visit) } },
+            ItemKind::Test { body, .. } | ItemKind::Bench { body, .. } => body.walk(&mut visit),
+            ItemKind::Const(c) | ItemKind::Static(c) => c.value.walk(&mut visit),
+            ItemKind::Stmt(s) => match &s.kind {
+                crate::ast::StmtKind::Let { init: Some(e), .. } => e.walk(&mut visit),
+                crate::ast::StmtKind::Destructure { init, .. } => init.walk(&mut visit),
+                crate::ast::StmtKind::Expr(e) => e.walk(&mut visit),
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+    found
+}
+
 pub struct Loader<'a> {
     pub map: &'a mut SourceMap,
     pub diags: Vec<Diagnostic>,
@@ -83,9 +112,16 @@ impl<'a> Loader<'a> {
             })
             .flatten()
             .collect();
+        let implicit = if is_std { vec![] } else { used_std_modules(&ast) };
         self.prog.modules.push(ModuleInfo { name, file, ast, is_std });
         for (path, span) in imports {
             self.resolve_import(&path, span);
+        }
+        // módulos estándar usados sin `import` (p. ej. `thread.spawn(..)`)
+        for m in implicit {
+            if !self.prog.by_name.contains_key(&m) && !self.cfg.memory.contains_key(&m) {
+                self.ensure_module(&[m]);
+            }
         }
         idx
     }
