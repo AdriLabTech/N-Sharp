@@ -316,7 +316,7 @@ impl Checker {
                 let t = self.check_expr_stmt(e);
                 if self.shallow(&t) == Ty::Never { Ty::Never } else { Ty::Nothing }
             }
-            StmtKind::Let { name, ty, init } => {
+            StmtKind::Let { name, ty, init, .. } => {
                 let declared = ty.as_ref().map(|te| {
                     let sc = self.body_scope();
                     self.resolve_type(te, &sc)

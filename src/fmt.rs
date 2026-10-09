@@ -150,15 +150,17 @@ impl<'a> Fmt<'a> {
         self.src[a..b].matches('\n').count() >= 2
     }
 
-    /// Emite los comentarios independientes anteriores a `pos`.
+    /// Emite los comentarios independientes anteriores a `pos`. Si el último queda separado del
+    /// siguiente elemento por una línea en blanco, la conserva (comentario «suelto»).
     fn flush_before(&mut self, pos: usize) {
+        let mut emitted = false;
         while self.ci < self.comments.len() && self.comments[self.ci].lo < pos {
             let (lo, hi, text) = {
                 let c = &self.comments[self.ci];
                 (c.lo, c.hi, c.text.clone())
             };
             self.ci += 1;
-            if !self.out.is_empty() && self.has_blank_between(self.prev_end, lo) && !self.out.ends_with("{\n") {
+            if !self.out.is_empty() && self.has_blank_between(self.prev_end, lo) && !self.out.ends_with("{\n") && !self.out.ends_with("\n\n") {
                 self.out.push('\n');
             }
             for l in text.lines() {
@@ -168,6 +170,18 @@ impl<'a> Fmt<'a> {
                 self.out.push('\n');
             }
             self.prev_end = hi;
+            emitted = true;
+        }
+        if emitted && pos != usize::MAX && self.has_blank_between(self.prev_end, pos) && !self.out.ends_with("\n\n") {
+            self.out.push('\n');
+        }
+    }
+
+    /// Posición del primer comentario pendiente anterior a `pos` (o `pos`).
+    fn first_pos(&self, pos: usize) -> usize {
+        match self.comments.get(self.ci) {
+            Some(c) if c.lo < pos => c.lo,
+            _ => pos,
         }
     }
 
@@ -210,24 +224,26 @@ impl<'a> Fmt<'a> {
         let mut prev_kind: Option<u8> = None;
         for it in &m.items {
             let lo = self.item_start(it);
-            self.flush_before(lo);
+            let first = self.first_pos(lo);
             let kind = match &it.kind {
                 ItemKind::Import(_) => 1,
                 ItemKind::Const(_) | ItemKind::Static(_) => 2,
                 ItemKind::Alias(_) => 3,
                 ItemKind::Stmt(_) => 4,
+                ItemKind::Fn(f) if f.body.is_none() => 5,
                 _ => 0,
             };
             if let Some(pk) = prev_kind {
                 let light = pk == kind && kind != 0;
                 if !self.out.ends_with("\n\n") {
                     if light {
-                        if self.has_blank_between(self.prev_end, lo) { self.out.push('\n'); }
+                        if self.has_blank_between(self.prev_end, first) { self.out.push('\n'); }
                     } else {
                         self.out.push('\n');
                     }
                 }
             }
+            self.flush_before(lo);
             prev_kind = Some(kind);
             self.item(it);
         }
@@ -412,11 +428,12 @@ impl<'a> Fmt<'a> {
     fn stmt(&mut self, s: &Stmt) {
         let end = s.span.hi as usize;
         match &s.kind {
-            StmtKind::Let { name, ty, init } => {
+            StmtKind::Let { name, ty, init, walrus } => {
                 let text = match (ty, init) {
                     (Some(t), Some(e)) => format!("let {} {} = {};", name.name, type_str(t), self.expr(e, 0)),
                     (Some(t), None) => format!("let {} {};", name.name, type_str(t)),
-                    (None, Some(e)) => format!("{} := {};", name.name, self.expr(e, 0)),
+                    (None, Some(e)) if *walrus => format!("{} := {};", name.name, self.expr(e, 0)),
+                    (None, Some(e)) => format!("let {} = {};", name.name, self.expr(e, 0)),
                     (None, None) => format!("let {};", name.name),
                 };
                 self.line_with_trailing(&text, end);
@@ -637,11 +654,12 @@ impl<'a> Fmt<'a> {
                 let head = match kind {
                     LoopKind::C { init, cond, update } => {
                         let i = match init.as_deref() {
-                            Some(Stmt { kind: StmtKind::Let { name, ty, init }, .. }) => {
+                            Some(Stmt { kind: StmtKind::Let { name, ty, init, walrus }, .. }) => {
                                 let v = init.as_ref().map(|e| self.expr(e, 0)).unwrap_or_default();
                                 match ty {
                                     Some(t) => format!("{} {} = {v}", name.name, type_str(t)),
-                                    None => format!("{} := {v}", name.name),
+                                    None if *walrus => format!("{} := {v}", name.name),
+                                    None => format!("let {} = {v}", name.name),
                                 }
                             }
                             Some(Stmt { kind: StmtKind::Expr(e), .. }) => self.expr(e, 0),
@@ -736,6 +754,16 @@ mod tests {
         assert!(out.contains("# cabecera"));
         assert!(out.contains("x := 0xFF;  # hex"));
         assert!(out.contains("# antes"));
+        assert_eq!(fmt(&out), out);
+    }
+
+    #[test]
+    fn preserves_let_style_and_comment_spacing() {
+        let src = "# cabecera\n\n/// doc\nfn a() -> nothing {\n    let x = 1;\n    y := 2;\n}\nfn b() -> nothing {}\n";
+        let out = fmt(src);
+        assert!(out.starts_with("# cabecera\n\n/// doc\nfn a()"), "{out}");
+        assert!(out.contains("let x = 1;") && out.contains("y := 2;"), "{out}");
+        assert!(out.contains("}\n\nfn b() -> nothing {}"), "{out}");
         assert_eq!(fmt(&out), out);
     }
 

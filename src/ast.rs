@@ -200,7 +200,8 @@ pub struct Stmt {
 
 #[derive(Clone, Debug)]
 pub enum StmtKind {
-    Let { name: Ident, ty: Option<TypeExpr>, init: Option<Expr> },
+    /// `walrus`: escrito como `x := e;` (en vez de `let x = e;`); solo lo usa el formateador.
+    Let { name: Ident, ty: Option<TypeExpr>, init: Option<Expr>, walrus: bool },
     /// `(x $int, y $int) = point;`
     Destructure { targets: Vec<DestructTarget>, init: Expr },
     Expr(Expr),

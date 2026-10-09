@@ -702,14 +702,14 @@ impl<'a> Parser<'a> {
                 return Err(Diagnostic::error(name.span, "una declaración `let` sin tipo requiere inicializador"));
             }
             self.expect_sym(";")?;
-            return Ok((Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init } }, false));
+            return Ok((Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init, walrus: false } }, false));
         }
         if matches!(self.tok(), Tok::Ident(n) if !n.chars().all(|c| c == '_')) && self.nth_sym(1, ":=") {
             let name = self.ident()?;
             self.advance();
             let init = self.expr()?;
             self.expect_sym(";")?;
-            return Ok((Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty: None, init: Some(init) } }, false));
+            return Ok((Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty: None, init: Some(init), walrus: true } }, false));
         }
         if self.at_sym("(") {
             if let Some(s) = self.try_destructure()? {
@@ -1131,20 +1131,20 @@ impl<'a> Parser<'a> {
             let ty = if self.at_sym("=") { None } else { Some(self.type_()?) };
             self.expect_sym("=")?;
             let init = Some(self.expr()?);
-            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init } });
+            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init, walrus: false } });
         }
         if matches!(self.tok(), Tok::Ident(_)) && self.nth_sym(1, ":=") {
             let name = self.ident()?;
             self.advance();
             let init = Some(self.expr()?);
-            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty: None, init } });
+            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty: None, init, walrus: true } });
         }
         if matches!(self.tok(), Tok::Ident(_)) && self.type_start_after_ident() {
             let name = self.ident()?;
             let ty = Some(self.type_()?);
             self.expect_sym("=")?;
             let init = Some(self.expr()?);
-            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init } });
+            return Ok(Stmt { span: start.to(self.prev_span()), kind: StmtKind::Let { name, ty, init, walrus: false } });
         }
         let e = self.expr()?;
         Ok(Stmt { span: e.span, kind: StmtKind::Expr(e) })

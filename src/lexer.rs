@@ -232,6 +232,9 @@ impl<'a> Lexer<'a> {
             let txt: String = self.src[start..self.pos].chars().filter(|c| *c != '_').collect();
             return Some(Tok::Float(txt.parse().unwrap_or(0.0)));
         }
+        if matches!(self.peek(), Some('e') | Some('E')) && self.peek_at(1).is_some_and(|c| c.is_ascii_digit() || c == '-' || c == '+') {
+            self.err(start, self.pos + 1, "N# v0.1 no admite notación científica");
+        }
         let txt: String = self.src[start..self.pos].chars().filter(|c| *c != '_').collect();
         if txt.len() > 1 && txt.starts_with('0') && txt.chars().all(|c| c.is_ascii_digit()) && !self.src[start..self.pos].contains('_') {
             self.err(start, self.pos, "N# v0.1 no admite literales octales");
