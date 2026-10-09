@@ -3,7 +3,6 @@ name = "nsharp"
 version = "0.1.0"
 edition = "2024"
 description = "N# (N Sharp): lenguaje generalista con tipado estático, RAII y traits. Incluye NCompiler y la CLI ncom."
-license = "MIT"
 
 [lib]
 name = "nsharp"
