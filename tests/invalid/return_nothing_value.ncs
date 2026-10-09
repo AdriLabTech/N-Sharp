@@ -1,0 +1,4 @@
+# error: `nothing` no es un valor
+fn f() -> nothing {
+    return nothing;
+}

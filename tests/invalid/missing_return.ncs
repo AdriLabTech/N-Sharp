@@ -1,0 +1,7 @@
+# error: debe devolver `$int` en todos los caminos
+fn f(a $int) -> $int {
+    if a > 1 {
+        return 1;
+    }
+}
+fn main() -> nothing {}

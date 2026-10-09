@@ -1,0 +1,12 @@
+import math;
+import math.sqrt as raiz;
+
+fn main() -> nothing {
+    println(math.sqrt(25));
+    println(raiz(2));
+    println(math.pow(2, 8));
+    println(math.max(3, 9));
+    println(math.abs(-4));
+    println(math.floor(2.7));
+    println(math.PI > 3.14);
+}

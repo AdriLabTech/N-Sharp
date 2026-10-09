@@ -1,0 +1,4 @@
+# error: las macros están reservadas
+macro println($value) {
+}
+fn main() -> nothing {}

@@ -1,0 +1,17 @@
+fn findUser(id $int) -> Option<$string> {
+    if id == 1 {
+        return Some("Adrian");
+    }
+    return None;
+}
+
+fn main() -> nothing {
+    match findUser(1) {
+        Some(name) => println(name);
+        None => println("Not found");
+    }
+    match findUser(2) {
+        Some(name) => println(name);
+        None => println("Not found");
+    }
+}

@@ -1,0 +1,8 @@
+# modo script: código global, sin fn main
+x := 20;
+fn square(n $int) -> $int {
+    return n * n;
+}
+println(square(x));
+let name $string = "script";
+println("modo {name}");

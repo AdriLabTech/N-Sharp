@@ -1,0 +1,5 @@
+# error: `await` solo puede usarse dentro de una función `async`
+async fn fetch() -> $int { return 1; }
+fn main() -> nothing {
+    let x = await fetch();
+}

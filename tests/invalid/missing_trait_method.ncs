@@ -1,0 +1,5 @@
+# error: falta implementar `draw`
+trait Drawable { fn draw() -> nothing; }
+struct C {}
+impl Drawable for C {}
+fn main() -> nothing {}

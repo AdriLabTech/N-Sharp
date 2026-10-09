@@ -1,0 +1,2 @@
+# error: escape desconocido
+let s = "a\q";

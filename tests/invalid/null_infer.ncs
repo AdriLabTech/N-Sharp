@@ -1,0 +1,2 @@
+# error: no se puede inferir el tipo de `null`
+user := null;

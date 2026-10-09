@@ -1,0 +1,12 @@
+async fn fetch() -> $string {
+    return "data";
+}
+
+async fn mainAsync() -> nothing {
+    let result = await fetch();
+    println(result);
+}
+
+fn main() -> nothing {
+    block_on(mainAsync());
+}

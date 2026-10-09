@@ -1,0 +1,5 @@
+# error: el acceso `x.0` no existe en v0.1
+fn main() -> nothing {
+    t := (1, 2);
+    println(t.0);
+}

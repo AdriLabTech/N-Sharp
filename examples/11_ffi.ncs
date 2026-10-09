@@ -1,0 +1,10 @@
+extern "C" {
+    fn printf(format $string, ...) -> $int;
+}
+
+fn main() -> nothing {
+    unsafe {
+        printf("Hello from C\n");
+        printf("%d + %d = %s\n", 2, 3, "cinco");
+    }
+}

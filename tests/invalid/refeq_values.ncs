@@ -1,0 +1,4 @@
+# error: solo se puede usar con tipos referencia
+fn main() -> nothing {
+    println(10 === 10);
+}

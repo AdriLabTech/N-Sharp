@@ -1,0 +1,7 @@
+fn main() -> nothing {
+    println("antes");
+    let xs = [1, 2, 3];
+    let i = 5;
+    println(xs[i]);
+    println("nunca");
+}

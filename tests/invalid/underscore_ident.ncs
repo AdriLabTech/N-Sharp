@@ -1,0 +1,2 @@
+# error: wildcard reservado
+let _ $int = 10;

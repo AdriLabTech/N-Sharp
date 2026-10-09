@@ -1,0 +1,8 @@
+fn main() -> nothing {
+    unsafe {
+        let ptr *$int = malloc(4) as *$int;
+        *ptr = 42;
+        println(*ptr);
+        free(ptr);
+    }
+}

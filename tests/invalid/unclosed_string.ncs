@@ -1,0 +1,2 @@
+# error: string sin cerrar
+let s = "abc;

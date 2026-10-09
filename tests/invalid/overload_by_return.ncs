@@ -1,0 +1,4 @@
+# error: el tipo de retorno no participa
+fn get() -> $int { return 1; }
+fn get() -> $string { return "a"; }
+fn main() -> nothing {}

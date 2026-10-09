@@ -1,0 +1,2 @@
+# error: tipo primitivo desconocido
+let $var $int = 10;

@@ -1,0 +1,5 @@
+# error: desreferenciar un puntero crudo requiere `unsafe`
+fn f(p *$int) -> $int {
+    return *p;
+}
+fn main() -> nothing {}

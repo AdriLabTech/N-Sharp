@@ -1,0 +1,5 @@
+# error: ya está declarada en este ámbito
+fn main() -> nothing {
+    let x $int = 1;
+    let x $int = 2;
+}

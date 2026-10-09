@@ -1,0 +1,18 @@
+trait Drawable {
+    fn draw() -> nothing;
+}
+
+struct Circle {
+    radius $float;
+}
+
+impl Drawable for Circle {
+    fn draw() -> nothing {
+        println("Drawing circle");
+    }
+}
+
+fn main() -> nothing {
+    let c = Circle { radius: 3.14 };
+    c.draw();
+}

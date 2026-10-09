@@ -1,0 +1,4 @@
+# error: tipos incompatibles
+fn main() -> nothing {
+    let x $int = if true { 1 };
+}

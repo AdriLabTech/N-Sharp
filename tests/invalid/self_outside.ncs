@@ -1,0 +1,5 @@
+# error: `self` solo puede usarse dentro de un método
+fn f() -> nothing {
+    println(self);
+}
+fn main() -> nothing {}

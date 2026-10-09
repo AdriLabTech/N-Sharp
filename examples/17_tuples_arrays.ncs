@@ -1,0 +1,22 @@
+fn main() -> nothing {
+    user := ("Adrian", 19, true);
+    println(user[0]);
+    println(user[1]);
+    (x $int, y $int) = (3, 4);
+    println(x + y);
+    numbers := [1, 2, 3];
+    println(numbers[2]);
+    matrix := [[1, 2], [3, 4]];
+    println(matrix[1][0]);
+    let values $int[0] = [];
+    println(values.length());
+    println(numbers[1..]);
+    println(numbers[..2]);
+    println(numbers[0..2]);
+    numbers[0] = 99;
+    println(numbers);
+    copy := numbers;
+    copy[1] = 0;
+    println(numbers);
+    println(copy);
+}

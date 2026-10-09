@@ -1,0 +1,11 @@
+fn main() -> $int {
+    let arguments List<$string> = args();
+    if arguments.length() == 0 {
+        println("No arguments");
+        return 1;
+    }
+    loop (arg : arguments) {
+        println(arg);
+    }
+    return 0;
+}

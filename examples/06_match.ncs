@@ -1,0 +1,21 @@
+enum Status {
+    Active,
+    Inactive,
+    Pending
+}
+
+fn main() -> nothing {
+    let status = Status.Active;
+    let message $string = match status {
+        Status.Active => "Running";
+        Status.Inactive => "Stopped";
+        Status.Pending => "Waiting";
+    };
+    println(message);
+    let age = 20;
+    let kind = match age {
+        x if x >= 18 => "adult";
+        _ => "minor";
+    };
+    println(kind);
+}

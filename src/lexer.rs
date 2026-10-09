@@ -15,6 +15,8 @@ pub enum Tok {
     Kw(&'static str),
     /// Tipo primitivo: `$int`, `$float`, ...
     Prim(&'static str),
+    /// `$nombre` que no es un primitivo (variable de macro); fuera de `macro` es un error.
+    MacroVar(String),
     Int(i64),
     Float(f64),
     Char(char),
@@ -188,15 +190,11 @@ impl<'a> Lexer<'a> {
         let word = &self.src[ws..self.pos];
         match PRIMS.iter().find(|p| **p == word) {
             Some(p) => Some(Tok::Prim(p)),
-            None => {
-                let msg = if word.is_empty() {
-                    "`$` está reservado para los tipos primitivos".to_string()
-                } else {
-                    format!("tipo primitivo desconocido `${word}`; los primitivos son $int, $float, $bool, $char, $string y $nothing")
-                };
-                self.err(start, self.pos, msg);
+            None if word.is_empty() => {
+                self.err(start, self.pos, "`$` está reservado para los tipos primitivos");
                 None
             }
+            None => Some(Tok::MacroVar(word.to_string())),
         }
     }
 
@@ -413,8 +411,8 @@ mod tests {
 
     #[test]
     fn errors() {
-        let (_, d) = lex(0, "let $var = 1;", false);
-        assert!(!d.is_empty());
+        let (t, _) = lex(0, "$var", false);
+        assert_eq!(t[0].tok, Tok::MacroVar("var".into()));
         let (_, d) = lex(0, "017", false);
         assert!(!d.is_empty());
     }

@@ -1,0 +1,6 @@
+# error: no implementa el trait `Comparable`
+struct P { x $int; }
+fn max<T: Comparable>(a T, b T) -> T { if a > b { return a; } return b; }
+fn main() -> nothing {
+    let m = max(P { x: 1 }, P { x: 2 });
+}

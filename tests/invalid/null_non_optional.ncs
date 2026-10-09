@@ -1,0 +1,2 @@
+# error: `null` solo es válido en tipos opcionales
+let x $int = null;

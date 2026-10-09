@@ -1,0 +1,24 @@
+struct Box2<T> {
+    value T;
+}
+
+impl Box2<T> {
+    fn get() -> T {
+        return self.value;
+    }
+}
+
+fn max<T: Comparable>(a T, b T) -> T {
+    if a > b {
+        return a;
+    }
+    return b;
+}
+
+fn main() -> nothing {
+    println(max(10, 20));
+    println(max("pera", "manzana"));
+    println(max(2.5, 1.5));
+    b := Box2 { value: "dentro" };
+    println(b.get());
+}

@@ -1,0 +1,26 @@
+fn main() -> nothing {
+    let numbers List<$int>;
+    numbers.add(1);
+    numbers.add(2);
+    numbers.add(3);
+    let scores = map {
+        "Adrian": 100,
+        "Carlos": 80
+    };
+    let unique = set {
+        1,
+        2,
+        3
+    };
+    println(numbers[0]);
+    println(scores["Adrian"]);
+    println(unique);
+    println(numbers);
+    println(scores);
+    scores["Ana"] = 95;
+    println(scores.length());
+    loop (n : numbers) {
+        print("{n} ");
+    }
+    println();
+}

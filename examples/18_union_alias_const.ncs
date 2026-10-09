@@ -1,0 +1,24 @@
+type UserId = $int;
+const SIZE $int = 10 * 10;
+static counter $int = 0;
+
+fn describe(v $int | $string) -> $string {
+    return match v {
+        n $int => "int {n}";
+        s $string => "string {s}";
+    };
+}
+
+fn bump() -> nothing {
+    counter += 1;
+}
+
+fn main() -> nothing {
+    let id UserId = 7;
+    println(id + SIZE);
+    println(describe(5));
+    println(describe("x"));
+    bump();
+    bump();
+    println(counter);
+}

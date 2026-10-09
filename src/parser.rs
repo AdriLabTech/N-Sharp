@@ -51,6 +51,7 @@ fn describe(t: &Tok) -> String {
         Tok::Ident(s) => format!("el identificador `{s}`"),
         Tok::Kw(k) => format!("la palabra reservada `{k}`"),
         Tok::Prim(p) => format!("el tipo `${p}`"),
+        Tok::MacroVar(n) => format!("`${n}`"),
         Tok::Int(_) | Tok::Float(_) => "un número".into(),
         Tok::Char(_) => "un carácter".into(),
         Tok::Str(_) => "un string".into(),
@@ -100,6 +101,13 @@ impl<'a> Parser<'a> {
         if self.at_kw(k) { self.advance(); true } else { false }
     }
     fn unexpected(&self, expected: &str) -> Diagnostic {
+        if let Tok::MacroVar(n) = self.tok() {
+            return Diagnostic::error(
+                self.span(),
+                format!("tipo primitivo desconocido `${n}`; los primitivos son $int, $float, $bool, $char, $string y $nothing"),
+            )
+            .with_label("`$` solo se usa en tipos primitivos (y en parámetros de `macro`)");
+        }
         Diagnostic::error(self.span(), format!("se esperaba {expected}, pero se encontró {}", describe(self.tok())))
             .with_label(format!("se esperaba {expected}"))
     }

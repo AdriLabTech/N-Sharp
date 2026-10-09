@@ -1,0 +1,5 @@
+# error: faltan campos
+struct U { name $string; age $int; }
+fn main() -> nothing {
+    let u = U { name: "a" };
+}

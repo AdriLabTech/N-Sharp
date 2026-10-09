@@ -1,0 +1,3 @@
+# error: los parámetros variádicos no existen en N# v0.1
+fn f(...) -> nothing {}
+fn main() -> nothing {}

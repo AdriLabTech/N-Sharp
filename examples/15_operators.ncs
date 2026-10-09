@@ -1,0 +1,25 @@
+fn main() -> nothing {
+    println(2 ^ 10);
+    println(2 ^ 3 ^ 2);
+    println(7 / 2);
+    println(7 % 3);
+    println(5 ^^ 1);
+    println(0xF0 & 0x3C);
+    println(1 << 4);
+    println(~0);
+    println(3 > 2 && 2 > 1 || false);
+    println(!true);
+    println(5 > 3 ? "si" : "no");
+    println(2.0 ^ 0.5);
+    println(10 as $float / 4.0);
+    println(7.9 as! $int);
+    println(65 as! $char);
+    println('a' as $int);
+    let x = 5;
+    x += 2;
+    x *= 3;
+    x -= 1;
+    x /= 4;
+    println(x);
+    println(-2 ^ 2);
+}

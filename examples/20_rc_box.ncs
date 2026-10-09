@@ -1,0 +1,16 @@
+struct Node {
+    value $int;
+}
+
+fn main() -> nothing {
+    let b = Box.new(Node { value: 1 });
+    println(b.get().value);
+    let r = Rc.new("compartido");
+    let r2 = r.clone();
+    println(r.strong_count());
+    println(r === r2);
+    println(r2.get());
+    let other = Rc.new("compartido");
+    println(r === other);
+    println(r == other);
+}

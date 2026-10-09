@@ -1,0 +1,28 @@
+fn show(value $int) -> nothing {
+    println("int {value}");
+}
+
+fn show(value $string) -> nothing {
+    println("string {value}");
+}
+
+fn greet(name $string?) -> nothing {
+    match name {
+        Some(n) => println("Hola, {n}");
+        None => println("Hola, desconocido");
+    }
+}
+
+fn main() -> nothing {
+    show(1);
+    show("a");
+    greet();
+    greet(null);
+    greet("Ana");
+    let maybe $int? = 5;
+    let none $int? = null;
+    println(maybe);
+    println(none);
+    println(maybe == null);
+    println(none == null);
+}

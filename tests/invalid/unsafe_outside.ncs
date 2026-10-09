@@ -1,0 +1,4 @@
+# error: requiere un bloque `unsafe`
+fn main() -> nothing {
+    let p = malloc(4);
+}

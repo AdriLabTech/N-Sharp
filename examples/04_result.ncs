@@ -1,0 +1,15 @@
+fn divide(a $int, b $int) -> Result<$int, $string> {
+    if b == 0 {
+        return Error("division by zero");
+    }
+    return Ok(a / b);
+}
+
+fn main() -> nothing {
+    let result = divide(10, 2)?;
+    println(result);
+    match divide(1, 0) {
+        Ok(v) => println("ok {v}");
+        Error(e) => println("error: {e}");
+    }
+}

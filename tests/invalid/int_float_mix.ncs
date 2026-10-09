@@ -1,0 +1,4 @@
+# error: usa `x as $float`
+let a $int = 1;
+let b $float = 2.0;
+let c = a + b;

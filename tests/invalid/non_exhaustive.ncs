@@ -1,0 +1,8 @@
+# error: `match` no exhaustivo
+enum Status { Active, Inactive }
+fn main() -> nothing {
+    let s = Status.Active;
+    match s {
+        Status.Active => println("active");
+    }
+}

@@ -1,0 +1,5 @@
+# error: se esperaba `$bool`
+fn main() -> nothing {
+    if 1 {
+    }
+}

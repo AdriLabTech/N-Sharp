@@ -1,0 +1,3 @@
+# error: `as!`
+let f $float = 1.5;
+let i $int = f as $int;

@@ -1,0 +1,4 @@
+# error: es un trait, no un tipo
+trait T { fn f() -> nothing; }
+fn use(x T) -> nothing {}
+fn main() -> nothing {}

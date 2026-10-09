@@ -1,0 +1,5 @@
+# error: no tiene el campo `edad`
+struct U { name $string; }
+fn main() -> nothing {
+    let u = U { name: "a", edad: 3 };
+}

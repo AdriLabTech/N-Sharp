@@ -1,0 +1,4 @@
+# error: no es evaluable en tiempo de compilación
+fn value() -> $int { return 3; }
+const X $int = value();
+fn main() -> nothing {}

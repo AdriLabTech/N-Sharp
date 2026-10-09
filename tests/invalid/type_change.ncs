@@ -1,0 +1,3 @@
+# error: el tipo de una variable no puede cambiar
+let x $int = 10;
+x = "hola";

@@ -1,0 +1,5 @@
+# error: espera 2 argumento(s), pero se dieron 1
+fn add(a $int, b $int) -> $int { return a + b; }
+fn main() -> nothing {
+    add(1);
+}

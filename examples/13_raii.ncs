@@ -1,0 +1,25 @@
+struct Guard {
+    name $string;
+}
+
+impl Drop for Guard {
+    fn drop() -> nothing {
+        println("drop {self.name}");
+    }
+}
+
+fn make(name $string) -> Guard {
+    return Guard { name: name };
+}
+
+fn main() -> nothing {
+    let outer = make("outer");
+    {
+        let a = make("a");
+        let b = make("b");
+        println("dentro");
+    }
+    let moved = make("moved");
+    let keep = moved;
+    println("fin");
+}

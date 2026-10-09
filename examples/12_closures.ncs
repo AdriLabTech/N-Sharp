@@ -1,0 +1,25 @@
+fn apply(operation ($int) -> $int, value $int) -> $int {
+    return operation(value);
+}
+
+fn createMultiplier() -> ($int) -> $int {
+    return (x $int) -> $int {
+        return x * 2;
+    };
+}
+
+fn add(a $int, b $int) -> $int {
+    return a + b;
+}
+
+fn main() -> nothing {
+    let operation = add;
+    println(operation(2, 3));
+    let double = createMultiplier();
+    println(apply(double, 21));
+    let offset = 100;
+    let shift = (x $int) -> $int {
+        return x + offset;
+    };
+    println(shift(1));
+}

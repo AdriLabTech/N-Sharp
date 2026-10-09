@@ -1,0 +1,5 @@
+# error: es una constante y no se puede modificar
+const X $int = 3;
+fn main() -> nothing {
+    X = 4;
+}

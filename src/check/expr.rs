@@ -309,6 +309,9 @@ impl Checker {
         if let Some(s) = self.suggest(&name, cands.into_iter()) {
             d = d.with_note(format!("¿quisiste decir `{s}`?"));
         }
+        if matches!(name.as_str(), "continue" | "switch" | "class" | "interface" | "extends" | "mut" | "throw" | "catch" | "try" | "this") {
+            d = d.with_note(format!("`{name}` no existe en N# v0.1 (ver «Reserved/future features» de la especificación)"));
+        }
         self.diags.push(d);
         Ty::Error
     }

@@ -1,0 +1,12 @@
+import thread;
+import channel;
+
+fn main() -> nothing {
+    (tx, rx) := channel.new();
+    let handle = thread.spawn(|| {
+        tx.send("desde el hilo");
+        return 7;
+    });
+    println(rx.recv());
+    println(handle.join());
+}

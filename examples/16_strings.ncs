@@ -1,0 +1,19 @@
+fn main() -> nothing {
+    let name = "Adrian";
+    println("Hola, {name}!");
+    println("Suma: {1 + 2}");
+    println("tab\tnueva\\linea \"comillas\" \u{1F680} \{llaves\}");
+    let text = """
+Hola
+Mundo
+""";
+    print(text);
+    println(text.length());
+    println(name.to_upper() + " " + name.to_lower());
+    println("a,b,c".split(","));
+    println("  recorte  ".trim());
+    println(name.substring(0, 3));
+    println(name.contains("dri"));
+    println("ñandú".length());
+    println('🚀');
+}

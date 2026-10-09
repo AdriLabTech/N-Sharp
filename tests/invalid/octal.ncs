@@ -1,0 +1,2 @@
+# error: literales octales
+let x $int = 017;
