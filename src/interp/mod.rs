@@ -397,7 +397,7 @@ impl Interp {
             if let Some(defs) = self.modules[main_idx].fns.get("main").cloned() {
                 let r = self.call_def(&defs[0], vec![], None, Span::default())?;
                 self.finish_threads()?;
-                return Ok(self.exit_code_of(&r)?);
+                return self.exit_code_of(&r);
             }
         }
         self.finish_threads()?;

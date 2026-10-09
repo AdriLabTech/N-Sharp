@@ -394,7 +394,7 @@ mod tests {
     #[test]
     fn basics() {
         assert_eq!(toks("let x $int = 0xFF;")[..5], [Tok::Kw("let"), Tok::Ident("x".into()), Tok::Prim("int"), Tok::Sym("="), Tok::Int(255)]);
-        assert_eq!(toks("1_000 0b101 3.14")[..3], [Tok::Int(1000), Tok::Int(5), Tok::Float(3.14)]);
+        assert_eq!(toks("1_000 0b101 2.5")[..3], [Tok::Int(1000), Tok::Int(5), Tok::Float(2.5)]);
         assert_eq!(toks("a ^^ b ^ c === d")[1], Tok::Sym("^^"));
     }
 

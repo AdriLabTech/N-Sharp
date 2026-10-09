@@ -553,7 +553,7 @@ impl<'a> Fmt<'a> {
             Set(items) => {
                 if items.is_empty() { "set {}".into() } else {
                     let a = self.args(items, "{ ", " }");
-                    format!("set {}", a.replacen("{ ", "{ ", 1))
+                    format!("set {a}")
                 }
             }
             Map(entries) => {

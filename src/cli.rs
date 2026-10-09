@@ -95,6 +95,7 @@ fn parse_flags(args: &[String]) -> Result<Flags, String> {
                 "--bench" => f.bench = true,
                 "--private" => f.private = true,
                 "--std" => f.with_std = true,
+                o if o.starts_with('-') && o != "-" => return Err(format!("opción desconocida `{o}` (usa `ncom --help`)")),
                 _ => f.rest.push(a.clone()),
             }
         }

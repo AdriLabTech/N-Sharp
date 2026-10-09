@@ -580,7 +580,7 @@ impl Checker {
                     self.lookup_type(sc.module, &last.name)
                 } else {
                     let mname = path[..path.len() - 1].iter().map(|i| i.name.as_str()).collect::<Vec<_>>().join(".");
-                    let m = self.find_module(sc.module, &mname).or_else(|| if path.len() == 2 { None } else { None });
+                    let m = self.find_module(sc.module, &mname);
                     match m {
                         Some(m) => self.mods[m].types.get(&last.name).cloned(),
                         None => {

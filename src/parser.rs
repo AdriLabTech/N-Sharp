@@ -742,7 +742,11 @@ impl<'a> Parser<'a> {
         if in_block && self.at_sym("}") {
             return Ok((Stmt { span: start.to(self.prev_span()), kind: StmtKind::Expr(e) }, true));
         }
-        Err(Diagnostic::error(self.prev_span(), "falta `;` al final de la sentencia").with_label("se esperaba `;` después de esto"))
+        let mut d = Diagnostic::error(self.prev_span(), "falta `;` al final de la sentencia").with_label("se esperaba `;` después de esto");
+        if matches!(e.kind, ExprKind::Ident(_)) && matches!(self.tok(), Tok::Prim(_)) {
+            d = d.with_note("¿falta `let`? Las declaraciones con tipo se escriben `let nombre $tipo = valor;`");
+        }
+        Err(d)
     }
 
     /// `(x $int, y $int) = expr;` / `(a, b) := expr;`. Devuelve None si no encaja (sin consumir).
