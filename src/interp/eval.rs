@@ -73,6 +73,27 @@ impl Interp {
             }
             ExprKind::Assign(op, l, r) => {
                 let rv = self.eval(r, env)?;
+                // camino rápido: variable local
+                if let ExprKind::Ident(name) = &l.kind {
+                    if let Some(c) = env.lookup(name) {
+                        match op {
+                            None => {
+                                if !matches!(&*c.borrow(), Value::Ref(_)) || matches!(rv, Value::Ref(_)) {
+                                    *c.borrow_mut() = rv;
+                                    return Ok(Value::Nothing);
+                                }
+                            }
+                            Some(bop) => {
+                                let cur = c.borrow().clone();
+                                if let (Value::Int(_), Value::Int(_)) | (Value::Float(_), Value::Float(_)) = (&cur, &rv) {
+                                    let nv = self.binop(*bop, &cur, &rv)?;
+                                    *c.borrow_mut() = nv;
+                                    return Ok(Value::Nothing);
+                                }
+                            }
+                        }
+                    }
+                }
                 let place = self.expr_place(l, env)?;
                 match op {
                     None => {
@@ -96,6 +117,17 @@ impl Interp {
                 Ok(Value::Nothing)
             }
             ExprKind::IncDec { target, inc, prefix } => {
+                if let ExprKind::Ident(name) = &target.kind {
+                    if let Some(c) = env.lookup(name) {
+                        let cur = c.borrow().clone();
+                        if let Value::Int(i) = cur {
+                            let d = if *inc { 1 } else { -1 };
+                            let n = i.checked_add(d).ok_or_else(|| Ctl::Panic("desbordamiento aritmético".into()))?;
+                            *c.borrow_mut() = Value::Int(n);
+                            return Ok(Value::Int(if *prefix { n } else { i }));
+                        }
+                    }
+                }
                 let place = self.expr_place(target, env)?;
                 let cur = self.pr(place.get())?;
                 let cur = self.deref_ref_keep(&cur, &place)?;
@@ -665,6 +697,23 @@ impl Interp {
 
     pub fn binop(&mut self, op: BinOp, a: &Value, b: &Value) -> R<Value> {
         use BinOp::*;
+        // camino rápido para enteros
+        if let (Value::Int(x), Value::Int(y)) = (a, b) {
+            let (x, y) = (*x, *y);
+            match op {
+                Add => if let Some(r) = x.checked_add(y) { return Ok(Value::Int(r)) },
+                Sub => if let Some(r) = x.checked_sub(y) { return Ok(Value::Int(r)) },
+                Mul => if let Some(r) = x.checked_mul(y) { return Ok(Value::Int(r)) },
+                Lt => return Ok(Value::Bool(x < y)),
+                Gt => return Ok(Value::Bool(x > y)),
+                Le => return Ok(Value::Bool(x <= y)),
+                Ge => return Ok(Value::Bool(x >= y)),
+                Eq => return Ok(Value::Bool(x == y)),
+                Ne => return Ok(Value::Bool(x != y)),
+                Rem if y > 0 => return Ok(Value::Int(x % y)),
+                _ => {}
+            }
+        }
         let a = &self.deref_ref(a)?;
         let b = &self.deref_ref(b)?;
         match op {

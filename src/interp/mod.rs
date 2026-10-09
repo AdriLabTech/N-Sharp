@@ -100,8 +100,20 @@ pub struct ModRt {
 }
 
 struct Frame {
-    name: String,
+    def: Option<Rc<FnDef>>,
     span: Span,
+}
+
+impl Frame {
+    fn label(&self) -> String {
+        match &self.def {
+            None => "<closure>".to_string(),
+            Some(d) => match &d.owner {
+                Some(o) => format!("{}.{}", o.rsplit("::").next().unwrap_or(o), d.name),
+                None => d.name.clone(),
+            },
+        }
+    }
 }
 
 pub struct Interp {
@@ -424,9 +436,9 @@ impl Interp {
                 if f.span != Span::default() {
                     let file = self.map.get(f.span.file);
                     let (l, c) = file.line_col(f.span.lo as usize);
-                    eprintln!("  en {} (llamada en {}:{}:{})", f.name, file.name, l, c);
+                    eprintln!("  en {} (llamada en {}:{}:{})", f.label(), file.name, l, c);
                 } else {
-                    eprintln!("  en {}", f.name);
+                    eprintln!("  en {}", f.label());
                 }
             }
         }
@@ -490,7 +502,7 @@ impl Interp {
     }
 
     fn call_closure(&mut self, c: &Rc<ClosureDef>, args: Vec<Value>, span: Span) -> R<Value> {
-        self.enter("<closure>", span)?;
+        self.enter(None, span)?;
         let scope = Scope::new(Some(c.env.clone()));
         for (p, a) in c.params.iter().zip(args) {
             scope.declare(&p.name.name, a);
@@ -513,12 +525,12 @@ impl Interp {
         }
     }
 
-    fn enter(&mut self, name: &str, span: Span) -> R<()> {
+    fn enter(&mut self, def: Option<&Rc<FnDef>>, span: Span) -> R<()> {
         if self.depth >= MAX_DEPTH {
             return self.panic("desbordamiento de pila: recursión demasiado profunda");
         }
         self.depth += 1;
-        self.frames.push(Frame { name: name.to_string(), span });
+        self.frames.push(Frame { def: def.cloned(), span });
         Ok(())
     }
 
@@ -583,11 +595,7 @@ impl Interp {
             let fut = FutureState { thunk: Some((Rc::new(FuncVal::Defs(Rc::new(vec![def.clone()]))), args, recv)), result: None };
             return Ok(Value::Future(Rc::new(RefCell::new(fut))));
         }
-        let label = match &def.owner {
-            Some(o) => format!("{}.{}", o.rsplit("::").next().unwrap_or(o), def.name),
-            None => def.name.clone(),
-        };
-        self.enter(&label, span)?;
+        self.enter(Some(def), span)?;
         let scope = Scope::new(None);
         if let Some(p) = recv {
             scope.declare("self", p.to_ref());
@@ -621,7 +629,7 @@ impl Interp {
             FuncVal::Defs(defs) => {
                 let def = defs[0].clone();
                 let body = def.decl.body.as_ref().unwrap();
-                self.enter(&def.name, Span::default())?;
+                self.enter(Some(&def), Span::default())?;
                 let scope = Scope::new(None);
                 if let Some(p) = recv {
                     scope.declare("self", p.to_ref());
@@ -649,6 +657,9 @@ impl Interp {
     // ---------- bloques y sentencias ----------
 
     pub fn eval_block(&mut self, b: &'static Block, parent: &Rc<Scope>) -> R<Value> {
+        if !b.stmts.iter().any(|s| !matches!(s.kind, StmtKind::Expr(_))) {
+            return self.eval_block_in(b, parent);
+        }
         let scope = Scope::new(Some(parent.clone()));
         let r = self.eval_block_in(b, &scope);
         if self.has_drop {

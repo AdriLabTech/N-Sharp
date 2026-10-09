@@ -245,7 +245,7 @@ impl Value {
 
 #[derive(Debug)]
 pub struct Scope {
-    pub vars: RefCell<Vec<(Rc<str>, Cell)>>,
+    pub vars: RefCell<Vec<(&'static str, Cell)>>,
     pub parent: Option<Rc<Scope>>,
 }
 
@@ -254,9 +254,9 @@ impl Scope {
         Rc::new(Scope { vars: RefCell::new(Vec::new()), parent })
     }
 
-    pub fn declare(&self, name: &str, v: Value) -> Cell {
+    pub fn declare(&self, name: &'static str, v: Value) -> Cell {
         let c = cell(v);
-        self.vars.borrow_mut().push((Rc::from(name), c.clone()));
+        self.vars.borrow_mut().push((name, c.clone()));
         c
     }
 
@@ -264,7 +264,7 @@ impl Scope {
         {
             let vars = self.vars.borrow();
             for (n, c) in vars.iter().rev() {
-                if &**n == name {
+                if *n == name {
                     return Some(c.clone());
                 }
             }
