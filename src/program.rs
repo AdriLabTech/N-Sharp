@@ -37,25 +37,33 @@ pub fn std_source(name: &str) -> Option<&'static str> {
 
 pub const STD_MODULES: &[&str] = &["math", "time", "thread", "channel", "fs", "io", "process"];
 
+/// De dónde salen los módulos de usuario.
+#[derive(Default, Clone)]
+pub struct SourceConfig {
+    /// Directorio raíz donde buscar módulos de usuario (`src/` o el directorio del script).
+    pub root: Option<PathBuf>,
+    /// Dependencias: (nombre, directorio `src` de la dependencia).
+    pub deps: Vec<(String, PathBuf)>,
+    /// Módulos en memoria (ejecutables empaquetados): nombre → (nombre a mostrar, texto).
+    pub memory: HashMap<String, (String, String)>,
+}
+
 pub struct Loader<'a> {
     pub map: &'a mut SourceMap,
     pub diags: Vec<Diagnostic>,
-    /// Directorio raíz donde buscar módulos de usuario (`src/` o el directorio del script).
-    pub root: Option<PathBuf>,
-    /// Módulos añadidos explícitamente (p. ej. dependencias).
-    pub extra_roots: Vec<PathBuf>,
+    pub cfg: SourceConfig,
     prog: Program,
 }
 
 impl<'a> Loader<'a> {
-    pub fn new(map: &'a mut SourceMap, root: Option<PathBuf>) -> Self {
-        Loader { map, diags: vec![], root, extra_roots: vec![], prog: Program { modules: vec![], by_name: HashMap::new(), main: 1 } }
+    pub fn new(map: &'a mut SourceMap, cfg: SourceConfig) -> Self {
+        Loader { map, diags: vec![], cfg, prog: Program { modules: vec![], by_name: HashMap::new(), main: 1 } }
     }
 
-    /// Carga `core` y el módulo principal (con todos sus imports transitivos).
-    pub fn load(mut self, main_name: &str, main_text: &str) -> (Program, Vec<Diagnostic>) {
+    /// Carga `core` y el módulo principal (`main`) con todos sus imports transitivos.
+    pub fn load(mut self, main_display: &str, main_text: &str) -> (Program, Vec<Diagnostic>) {
         self.add_module("core".to_string(), "<std>/core.ncs".to_string(), std_source("core").unwrap().to_string(), true);
-        let main = self.add_module(main_name.to_string(), main_name.to_string(), main_text.to_string(), false);
+        let main = self.add_module("main".to_string(), main_display.to_string(), main_text.to_string(), false);
         self.prog.main = main;
         (self.prog, self.diags)
     }
@@ -97,10 +105,9 @@ impl<'a> Loader<'a> {
     }
 
     fn find_user(&self, path: &[String]) -> Option<PathBuf> {
-        let roots = self.root.iter().chain(self.extra_roots.iter());
-        for root in roots {
+        let probe = |root: &PathBuf, segs: &[String]| -> Option<PathBuf> {
             let mut p = root.clone();
-            for s in path {
+            for s in segs {
                 p.push(s);
             }
             let file = p.with_extension("ncs");
@@ -111,6 +118,25 @@ impl<'a> Loader<'a> {
             if modfile.is_file() {
                 return Some(modfile);
             }
+            None
+        };
+        if let Some(root) = &self.cfg.root {
+            if let Some(f) = probe(root, path) {
+                return Some(f);
+            }
+        }
+        // dependencias: `import dep` → dep/src/lib.ncs ; `import dep.a.b` → dep/src/a/b.ncs
+        for (name, root) in &self.cfg.deps {
+            if path[0] == *name {
+                if path.len() == 1 {
+                    let lib = root.join("lib.ncs");
+                    if lib.is_file() {
+                        return Some(lib);
+                    }
+                } else if let Some(f) = probe(root, &path[1..]) {
+                    return Some(f);
+                }
+            }
         }
         None
     }
@@ -118,6 +144,10 @@ impl<'a> Loader<'a> {
     fn ensure_module(&mut self, path: &[String]) -> bool {
         let name = path.join(".");
         if self.prog.by_name.contains_key(&name) {
+            return true;
+        }
+        if let Some((display, text)) = self.cfg.memory.get(&name).cloned() {
+            self.add_module(name, display, text, false);
             return true;
         }
         if let Some(file) = self.find_user(path) {

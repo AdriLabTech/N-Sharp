@@ -266,6 +266,13 @@ pub fn table() -> HashMap<&'static str, IntrinsicFn> {
         Value::Future(f) => it.run_future(&f),
         _ => it.panic("block_on espera un Future"),
     });
+    reg!("global.__repl_show", |it, _, a| {
+        if !matches!(a[0], Value::Nothing) {
+            let s = it.debug_str(&a[0])?;
+            let _ = writeln!(it.out, "{s}");
+        }
+        Ok(Value::Nothing)
+    });
     reg!("global.malloc", |it, _, a| {
         let n = a[0].as_int();
         if n <= 0 {

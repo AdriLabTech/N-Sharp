@@ -204,6 +204,8 @@ pub struct Checker {
     /// Consumido por `check_expr`: la expresión es una sentencia y su valor se descarta.
     discard: bool,
     last_tail_ty: Option<Ty>,
+    /// Tipos resueltos de los patrones `x $tipo` (por offset del identificador).
+    typed_binds: HashMap<(u32, u32), Ty>,
 }
 
 /// Verifica el programa completo (módulo `core` incluido). Muta el AST (resolución y coerciones).
@@ -235,6 +237,7 @@ pub fn check_program(prog: &mut Program, opts: Options) -> Vec<Diagnostic> {
         impl_of_item: HashMap::new(),
         discard: false,
         last_tail_ty: None,
+        typed_binds: HashMap::new(),
     };
     ck.collect_all(&mut asts);
     let has_decl_errors = ck.diags.iter().any(|d| d.is_error());
@@ -283,10 +286,6 @@ impl Checker {
             return;
         }
         self.diags.push(Diagnostic::warning(span, msg).with_note(format!("categoría: {cat}")));
-    }
-
-    fn is_std(&self, module: usize) -> bool {
-        self.mod_std[module]
     }
 
     pub fn suggest(&self, name: &str, candidates: impl Iterator<Item = String>) -> Option<String> {

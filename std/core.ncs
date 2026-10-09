@@ -72,6 +72,8 @@ pub fn to_string<T>(value T) -> $string;
 pub fn assert_eq<T>(left T, right T) -> nothing;
 pub fn assert_ne<T>(left T, right T) -> nothing;
 pub fn block_on<T>(future Future<T>) -> T;
+# usada por el REPL para mostrar el valor de una expresión
+pub fn __repl_show<T>(value T) -> nothing;
 pub unsafe fn malloc(size $int) -> *$nothing;
 pub unsafe fn free<T>(ptr *T) -> nothing;
 
@@ -356,6 +358,34 @@ impl<T> Array<T> {
     pub fn length() -> $int;
     pub fn contains(item T) -> $bool;
     pub fn to_list() -> List<T>;
+
+    pub fn map<U>(f (T) -> U) -> List<U> {
+        return self.to_list().map(f);
+    }
+
+    pub fn filter(f (T) -> $bool) -> List<T> {
+        return self.to_list().filter(f);
+    }
+
+    pub fn for_each(f (T) -> nothing) -> nothing {
+        self.to_list().for_each(f);
+    }
+
+    pub fn reduce<A>(init A, f (A, T) -> A) -> A {
+        return self.to_list().reduce(init, f);
+    }
+
+    pub fn any(f (T) -> $bool) -> $bool {
+        return self.to_list().any(f);
+    }
+
+    pub fn all(f (T) -> $bool) -> $bool {
+        return self.to_list().all(f);
+    }
+
+    pub fn find(f (T) -> $bool) -> T? {
+        return self.to_list().find(f);
+    }
 }
 
 # ---------- primitivos ----------

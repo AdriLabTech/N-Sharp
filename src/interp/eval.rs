@@ -5,6 +5,7 @@ use std::cmp::Ordering;
 
 impl Interp {
     pub fn eval(&mut self, e: &'static Expr, env: &Rc<Scope>) -> R<Value> {
+        self.cur_span = e.span;
         match &e.kind {
             ExprKind::Int(i) => Ok(Value::Int(*i)),
             ExprKind::Float(f) => Ok(Value::Float(*f)),
@@ -553,6 +554,7 @@ impl Interp {
             let v = self.pr(place.get())?;
             let key = v.type_key();
             if let Some(defs) = self.lookup_def_set(&key, &name.name) {
+                drop(v);
                 let def = self.select_def(&defs, &argv)?;
                 return self.call_def(&def, argv, Some(place), span);
             }

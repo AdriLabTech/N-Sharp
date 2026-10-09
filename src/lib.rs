@@ -7,10 +7,14 @@ pub mod types;
 pub mod program;
 pub mod check;
 pub mod interp;
+pub mod project;
+pub mod fmt;
+pub mod doc;
+pub mod cli;
+pub mod repl;
 
 use diag::{Diagnostic, SourceMap};
-use program::{Loader, Program};
-use std::path::PathBuf;
+use program::{Loader, Program, SourceConfig};
 
 pub struct Compiled {
     pub prog: Program,
@@ -28,9 +32,9 @@ impl Compiled {
 }
 
 /// Frontend completo: carga (prelude + imports), parsea y verifica.
-pub fn compile(name: &str, text: &str, root: Option<PathBuf>, opts: check::Options) -> Compiled {
+pub fn compile(display: &str, text: &str, cfg: SourceConfig, opts: check::Options) -> Compiled {
     let mut map = SourceMap::default();
-    let (mut prog, mut diags) = Loader::new(&mut map, root).load(name, text);
+    let (mut prog, mut diags) = Loader::new(&mut map, cfg).load(display, text);
     let has_parse_errors = diags.iter().any(|d| d.is_error());
     if !has_parse_errors {
         diags.extend(check::check_program(&mut prog, opts));

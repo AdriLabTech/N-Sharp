@@ -130,6 +130,19 @@ impl Checker {
         if self.unify(&found, &expected) {
             return true;
         }
+        // literal de array -> List<T>
+        if let (Ty::Array(elem, _), Ty::Named(n, args)) = (&found, &expected) {
+            if &**n == "List" && matches!(e.kind, ExprKind::Array(_)) && self.unify(elem, &args[0]) {
+                let span = e.span;
+                let old = std::mem::replace(&mut e.kind, ExprKind::Null);
+                let recv = Expr { kind: old, span };
+                e.kind = ExprKind::Call {
+                    callee: Box::new(Expr { kind: ExprKind::Field(Box::new(recv), Ident { name: "to_list".into(), span }), span }),
+                    args: vec![],
+                };
+                return true;
+            }
+        }
         // T -> Option<T>
         if let Ty::Named(n, args) = &expected {
             if &**n == "Option" && !found.is_option() {

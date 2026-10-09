@@ -84,6 +84,7 @@ impl Checker {
                         if !ok {
                             self.err_label(te.span, format!("el tipo `{t}` no es una alternativa de `{}`", self.resolve(&st)), "no coincide");
                         }
+                        self.typed_binds.insert((name.span.file, name.span.lo), t.clone());
                         t
                     }
                     None => st.clone(),
@@ -164,7 +165,10 @@ impl Checker {
         match p {
             Pattern::Wild(_) => NPat::Wild,
             Pattern::Bind { ty: None, .. } => NPat::Wild,
-            Pattern::Bind { ty: Some(_), name } => NPat::Ctor(format!("@{}", name.name), vec![]),
+            Pattern::Bind { ty: Some(_), name } => {
+                let t = self.typed_binds.get(&(name.span.file, name.span.lo)).map(|t| self.resolve(t)).unwrap_or(Ty::Error);
+                NPat::Ctor(format!("@{t}"), vec![])
+            }
             Pattern::Lit(e) => match &e.kind {
                 ExprKind::Bool(b) => NPat::Ctor(b.to_string(), vec![]),
                 _ => NPat::Lit,

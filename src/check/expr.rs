@@ -2,14 +2,6 @@
 
 use super::*;
 
-fn lit_name(k: &ExprKind) -> &'static str {
-    match k {
-        ExprKind::Int(_) => "entero",
-        ExprKind::Float(_) => "decimal",
-        _ => "valor",
-    }
-}
-
 impl Checker {
     pub(super) fn cur_ctx(&mut self) -> &mut FnCtx {
         self.fcx.last_mut().expect("contexto de función")

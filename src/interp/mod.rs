@@ -2,6 +2,7 @@
 
 mod display;
 mod intrinsics;
+mod runner;
 pub mod value;
 
 use crate::ast::*;
@@ -117,20 +118,22 @@ pub struct Interp {
     frames: Vec<Frame>,
     pub depth: usize,
     pub out: std::io::BufWriter<std::io::Stdout>,
-    pub debug: bool,
+    /// 0 = release (mensajes mínimos), 1 = normal, 2 = debug (backtrace completo).
+    pub verbosity: u8,
+    pub cur_span: Span,
     pub args: Vec<String>,
     pub heap: Vec<Option<Vec<Cell>>>,
     pub threads: Vec<ThreadSlot>,
     pub tests: Vec<(String, &'static Block, usize)>,
     pub benches: Vec<(String, &'static Block, usize)>,
-    pub stdin_buf: Option<std::io::Stdin>,
-    cur_module: usize,
+    pub only_main_tests: bool,
+    pub(crate) cur_module: usize,
 }
 
 const MAX_DEPTH: usize = 12_000;
 
 impl Interp {
-    pub fn new(prog: &'static Program, map: &'static SourceMap, debug: bool, args: Vec<String>) -> Result<Interp, String> {
+    pub fn new(prog: &'static Program, map: &'static SourceMap, verbosity: u8, args: Vec<String>) -> Result<Interp, String> {
         let opt_info = Rc::new(EnumInfo { key: "Option".into(), name: "Option".into(), variants: vec![("Some".into(), 1), ("None".into(), 0)] });
         let res_info = Rc::new(EnumInfo { key: "Result".into(), name: "Result".into(), variants: vec![("Ok".into(), 1), ("Error".into(), 1)] });
         let mut it = Interp {
@@ -147,13 +150,14 @@ impl Interp {
             frames: vec![],
             depth: 0,
             out: std::io::BufWriter::with_capacity(1 << 16, std::io::stdout()),
-            debug,
+            verbosity,
+            cur_span: Span::default(),
             args,
             heap: vec![],
             threads: vec![],
             tests: vec![],
             benches: vec![],
-            stdin_buf: None,
+            only_main_tests: false,
             cur_module: 0,
         };
         it.enums.insert("Option".into(), opt_info);
@@ -404,13 +408,23 @@ impl Interp {
     pub fn report_panic(&mut self, msg: &str) {
         let _ = self.out.flush();
         eprintln!("panic: {msg}");
-        if self.debug {
+        if self.verbosity == 0 {
+            return;
+        }
+        let sp = self.cur_span;
+        if sp != Span::default() && (sp.file as usize) < self.map.files.len() {
+            let file = self.map.get(sp.file);
+            let (l, c) = file.line_col(sp.lo as usize);
+            eprintln!("  --> {}:{}:{}", file.name, l, c);
+            eprintln!("   | {}", file.line_text(l).trim());
+        }
+        if self.verbosity >= 2 {
             eprintln!("backtrace (llamadas más recientes primero):");
-            for f in self.frames.iter().rev().take(40) {
+            for f in self.frames.iter().rev().take(60) {
                 if f.span != Span::default() {
                     let file = self.map.get(f.span.file);
                     let (l, c) = file.line_col(f.span.lo as usize);
-                    eprintln!("  en {} ({}:{}:{})", f.name, file.name, l, c);
+                    eprintln!("  en {} (llamada en {}:{}:{})", f.name, file.name, l, c);
                 } else {
                     eprintln!("  en {}", f.name);
                 }
@@ -643,7 +657,7 @@ impl Interp {
         r
     }
 
-    fn eval_block_in(&mut self, b: &'static Block, scope: &Rc<Scope>) -> R<Value> {
+    pub(crate) fn eval_block_in(&mut self, b: &'static Block, scope: &Rc<Scope>) -> R<Value> {
         for s in &b.stmts {
             self.exec_stmt(s, scope)?;
         }
@@ -653,7 +667,7 @@ impl Interp {
         }
     }
 
-    fn exec_stmt(&mut self, s: &'static Stmt, env: &Rc<Scope>) -> R<()> {
+    pub(crate) fn exec_stmt(&mut self, s: &'static Stmt, env: &Rc<Scope>) -> R<()> {
         match &s.kind {
             StmtKind::Expr(e) => {
                 self.eval(e, env)?;
@@ -678,6 +692,10 @@ impl Interp {
     }
 
     pub fn drop_scope(&mut self, scope: &Rc<Scope>) -> R<()> {
+        if Rc::strong_count(scope) > 1 {
+            // capturado por una clausura: las variables siguen vivas
+            return Ok(());
+        }
         let vars = std::mem::take(&mut *scope.vars.borrow_mut());
         for (_, c) in vars.into_iter().rev() {
             if Rc::strong_count(&c) == 1 {
