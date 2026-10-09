@@ -45,6 +45,7 @@ NCompiler, qué extensiones menores añade y qué límites tiene la implementaci
 - **Traits:** solo genéricos con cotas (`<T: Trait>`); no hay objetos-trait (`dyn`). Los traits de la biblioteca:
   `Comparable` (`compare(other Self) -> $int`, habilita `< > <= >=` y `sort`), `Numeric`, `Iterable<T>`
   (`items() -> List<T>`, habilita `loop`), `Drop`, `Display` (`to_string() -> $string`, usado por `println` e interpolación).
+- **Genéricos:** una función genérica puede llamar a los métodos de instancia que garantiza la cota (`x.draw()` con `T: Drawable`), pero no a funciones asociadas del parámetro (`T.new()`); los argumentos de tipo se infieren siempre (no existe `f<$int>(..)`).
 - **Slices:** `array[a..b]` produce una `List<T>` (el tamaño de un slice no es conocido en compilación); en strings produce `$string`.
 - **Literal de array → `List<T>`:** un literal `[1, 2, 3]` se acepta donde se espera una `List<$int>`.
 - **Módulos estándar sin `import`:** `thread.spawn(..)` (§43) funciona sin importar; `import thread;` también es válido.
