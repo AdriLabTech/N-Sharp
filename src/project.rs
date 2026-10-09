@@ -152,6 +152,9 @@ pub fn parse_manifest(text: &str) -> Result<Manifest, String> {
     let mut deps = vec![];
     if let Some(TomlValue::Table(d)) = t.get("dependencies") {
         for (k, v) in d {
+            if !valid_package_name(k) {
+                return Err(format!("nombre de dependencia no válido: `{k}` (usa letras, dígitos, `_` o `-`)"));
+            }
             let src = match v {
                 TomlValue::Str(ver) => DepSrc::Version(ver.clone()),
                 TomlValue::Table(tb) => {
@@ -273,12 +276,15 @@ impl Project {
                     log.push(format!("  {} (path {})", d.name, p));
                 }
                 DepSrc::Git { url, rev } => {
+                    if url.starts_with('-') || rev.as_deref().is_some_and(|r| r.starts_with('-')) {
+                        return Err(format!("la dependencia `{}` tiene una URL o revisión no válida", d.name));
+                    }
                     let dir = self.deps_dir().join(&d.name);
                     std::fs::create_dir_all(self.deps_dir()).map_err(|e| e.to_string())?;
                     if dir.is_dir() {
                         run_git(&["-C", &dir.display().to_string(), "fetch", "--quiet", "--all"])?;
                     } else {
-                        run_git(&["clone", "--quiet", url, &dir.display().to_string()])?;
+                        run_git(&["clone", "--quiet", "--", url, &dir.display().to_string()])?;
                     }
                     if let Some(r) = rev {
                         run_git(&["-C", &dir.display().to_string(), "checkout", "--quiet", r])?;
@@ -437,6 +443,11 @@ mod tests {
         assert_eq!(m.name, "example");
         assert_eq!(m.deps.len(), 3);
         assert_eq!(m.warnings["unused-variable"], "allow");
+    }
+
+    #[test]
+    fn rejects_dependency_names_with_path_components() {
+        assert!(parse_manifest("name = \"a\"\n[dependencies]\n\"../x\" = { path = \"p\" }\n").is_err());
     }
 
     #[test]
