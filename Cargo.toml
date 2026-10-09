@@ -1,0 +1,22 @@
+[package]
+name = "nsharp"
+version = "0.1.0"
+edition = "2024"
+description = "N# (N Sharp): lenguaje generalista con tipado estático, RAII y traits. Incluye NCompiler y la CLI ncom."
+license = "MIT"
+
+[lib]
+name = "nsharp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ncom"
+path = "src/main.rs"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "unwind"
