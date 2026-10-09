@@ -1,0 +1,9 @@
+# Módulo `fs`: sistema de ficheros.
+
+pub fn read(path $string) -> Result<$string, $string>;
+pub fn write(path $string, data $string) -> Result<nothing, $string>;
+pub fn append(path $string, data $string) -> Result<nothing, $string>;
+pub fn exists(path $string) -> $bool;
+pub fn remove(path $string) -> Result<nothing, $string>;
+pub fn create_dir(path $string) -> Result<nothing, $string>;
+pub fn list_dir(path $string) -> Result<List<$string>, $string>;

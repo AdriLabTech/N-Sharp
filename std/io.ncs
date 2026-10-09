@@ -1,0 +1,6 @@
+# Módulo `io`: entrada y salida estándar.
+
+/// Lee una línea de la entrada estándar (sin el salto final); `null` en EOF.
+pub fn read_line() -> $string?;
+pub fn read_all() -> $string;
+pub fn flush() -> nothing;

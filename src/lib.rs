@@ -6,6 +6,7 @@ pub mod parser;
 pub mod types;
 pub mod program;
 pub mod check;
+pub mod interp;
 
 use diag::{Diagnostic, SourceMap};
 use program::{Loader, Program};

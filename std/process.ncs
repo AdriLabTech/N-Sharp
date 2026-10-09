@@ -1,0 +1,4 @@
+# Módulo `process`: información del proceso.
+
+pub fn pid() -> $int;
+pub fn cwd() -> $string;

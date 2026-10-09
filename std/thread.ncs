@@ -1,0 +1,12 @@
+# Módulo `thread`: hilos cooperativos del backend intérprete (ver docs/divergencias.md).
+
+pub struct JoinHandle<T> { }
+
+impl<T> JoinHandle<T> {
+    /// Espera a que termine el hilo y devuelve su resultado.
+    pub fn join() -> T;
+}
+
+/// Lanza una función en un hilo.
+pub fn spawn<T>(task () -> T) -> JoinHandle<T>;
+pub fn sleep(ms $int) -> nothing;

@@ -1,0 +1,31 @@
+# Módulo `math`: funciones numéricas (todas intrínsecas).
+
+/// La constante π.
+pub const PI $float = 3.141592653589793;
+/// El número e.
+pub const E $float = 2.718281828459045;
+
+/// Raíz cuadrada.
+pub fn sqrt<T: Numeric>(x T) -> $float;
+/// Valor absoluto.
+pub fn abs<T: Numeric>(x T) -> T;
+/// Potencia (`$int` con exponente no negativo, o `$float`).
+pub fn pow<T: Numeric>(base T, exp T) -> T;
+pub fn floor<T: Numeric>(x T) -> $float;
+pub fn ceil<T: Numeric>(x T) -> $float;
+pub fn round<T: Numeric>(x T) -> $float;
+pub fn trunc<T: Numeric>(x T) -> $float;
+pub fn sin<T: Numeric>(x T) -> $float;
+pub fn cos<T: Numeric>(x T) -> $float;
+pub fn tan<T: Numeric>(x T) -> $float;
+pub fn asin<T: Numeric>(x T) -> $float;
+pub fn acos<T: Numeric>(x T) -> $float;
+pub fn atan<T: Numeric>(x T) -> $float;
+pub fn atan2<T: Numeric>(y T, x T) -> $float;
+/// Logaritmo natural.
+pub fn ln<T: Numeric>(x T) -> $float;
+pub fn log10<T: Numeric>(x T) -> $float;
+pub fn exp<T: Numeric>(x T) -> $float;
+pub fn min<T: Numeric>(a T, b T) -> T;
+pub fn max<T: Numeric>(a T, b T) -> T;
+pub fn clamp<T: Numeric>(x T, low T, high T) -> T;

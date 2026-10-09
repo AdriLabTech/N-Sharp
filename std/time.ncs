@@ -1,0 +1,7 @@
+# Módulo `time`.
+
+/// Milisegundos desde la época Unix.
+pub fn now_ms() -> $int;
+/// Reloj monótono en nanosegundos (para medir intervalos).
+pub fn monotonic_ns() -> $int;
+pub fn sleep_ms(ms $int) -> nothing;
