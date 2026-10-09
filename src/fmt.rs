@@ -23,6 +23,8 @@ pub struct Fmt<'a> {
     out: String,
     indent: usize,
     prev_end: usize,
+    /// Columnas ya ocupadas en la línea antes de la expresión (p. ej. `x := `).
+    prefix: usize,
 }
 
 /// Formatea un fichero fuente completo. Devuelve los diagnósticos de sintaxis si no se puede parsear.
@@ -39,7 +41,7 @@ pub fn format_source(src: &str) -> Result<String, Vec<Diagnostic>> {
             _ => None,
         })
         .collect();
-    let mut f = Fmt { src, comments, ci: 0, out: String::new(), indent: 0, prev_end: 0 };
+    let mut f = Fmt { src, comments, ci: 0, out: String::new(), indent: 0, prev_end: 0, prefix: 0 };
     f.module(&module);
     let mut out = f.out;
     while out.ends_with("\n\n") {
@@ -429,6 +431,7 @@ impl<'a> Fmt<'a> {
         let end = s.span.hi as usize;
         match &s.kind {
             StmtKind::Let { name, ty, init, walrus } => {
+                self.prefix = name.name.len() + 5 + ty.as_ref().map(|t| type_str(t).len() + 1).unwrap_or(0);
                 let text = match (ty, init) {
                     (Some(t), Some(e)) => format!("let {} {} = {};", name.name, type_str(t), self.expr(e, 0)),
                     (Some(t), None) => format!("let {} {};", name.name, type_str(t)),
@@ -436,6 +439,7 @@ impl<'a> Fmt<'a> {
                     (None, Some(e)) => format!("let {} = {};", name.name, self.expr(e, 0)),
                     (None, None) => format!("let {};", name.name),
                 };
+                self.prefix = 0;
                 self.line_with_trailing(&text, end);
             }
             StmtKind::Destructure { targets, init } => {
@@ -474,10 +478,12 @@ impl<'a> Fmt<'a> {
         if prec_of(e) < min { format!("({s})") } else { s }
     }
 
-    fn args(&mut self, items: &[Expr], open: &str, close: &str) -> String {
+    fn args(&mut self, items: &[Expr], open: &str, close: &str, lead: usize) -> String {
+        let prefix = std::mem::take(&mut self.prefix);
         let parts: Vec<String> = items.iter().map(|a| self.expr(a, 1)).collect();
+        self.prefix = prefix;
         let flat = format!("{open}{}{close}", parts.join(", "));
-        if !flat.contains('\n') && self.indent * 4 + flat.len() <= WIDTH {
+        if !flat.contains('\n') && self.indent * 4 + prefix + lead + flat.len() <= WIDTH {
             return flat;
         }
         if flat.contains('\n') && parts.len() == 1 {
@@ -514,6 +520,29 @@ impl<'a> Fmt<'a> {
                 format!("{sym}{inner}")
             }
             Await(x) => format!("await {}", self.expr(x, 15)),
+            Binary(op @ (BinOp::And | BinOp::Or), _, _) => {
+                let op = *op;
+                let p = prec_of(e);
+                let mut operands: Vec<&Expr> = vec![];
+                let mut cur = e;
+                while let Binary(o2, l2, r2) = &cur.kind {
+                    if *o2 != op { break; }
+                    operands.push(r2);
+                    cur = l2;
+                }
+                operands.push(cur);
+                operands.reverse();
+                let prefix = std::mem::take(&mut self.prefix);
+                let parts: Vec<String> = operands.iter().map(|x| self.expr(x, p + 1)).collect();
+                self.prefix = prefix;
+                let flat = parts.join(&format!(" {} ", op.symbol()));
+                if !flat.contains('\n') && self.indent * 4 + prefix + flat.len() <= WIDTH {
+                    flat
+                } else {
+                    let pad = "    ".repeat(self.indent + 1);
+                    parts.join(&format!("\n{pad}{} ", op.symbol()))
+                }
+            }
             Binary(op, l, r) => {
                 let p = prec_of(e);
                 let (lp, rp) = if *op == BinOp::Pow { (p + 1, p) } else { (p, p + 1) };
@@ -537,7 +566,7 @@ impl<'a> Fmt<'a> {
             }
             Call { callee, args } => {
                 let c = self.expr(callee, 17);
-                let a = self.args(args, "(", ")");
+                let a = self.args(args, "(", ")", c.len());
                 format!("{c}{a}")
             }
             Field(b, n) => format!("{}.{}", self.expr(b, 17), n.name),
@@ -548,11 +577,11 @@ impl<'a> Fmt<'a> {
                 let h = hi.as_ref().map(|x| self.expr(x, 0)).unwrap_or_default();
                 format!("{b}[{l}..{h}]")
             }
-            Array(items) => self.args(items, "[", "]"),
-            Tuple(items) => self.args(items, "(", ")"),
+            Array(items) => self.args(items, "[", "]", 0),
+            Tuple(items) => self.args(items, "(", ")", 0),
             Set(items) => {
                 if items.is_empty() { "set {}".into() } else {
-                    let a = self.args(items, "{ ", " }");
+                    let a = self.args(items, "{ ", " }", 4);
                     format!("set {a}")
                 }
             }
@@ -764,6 +793,18 @@ mod tests {
         assert!(out.starts_with("# cabecera\n\n/// doc\nfn a()"), "{out}");
         assert!(out.contains("let x = 1;") && out.contains("y := 2;"), "{out}");
         assert!(out.contains("}\n\nfn b() -> nothing {}"), "{out}");
+        assert_eq!(fmt(&out), out);
+    }
+
+    #[test]
+    fn breaks_long_lines() {
+        let src = "fn f() -> nothing { r := some_function_with_a_long_name(argument_number_one, argument_number_two, argument_number_three, four_); }";
+        let out = fmt(src);
+        assert!(out.contains("some_function_with_a_long_name(\n        argument_number_one,\n"), "{out}");
+        assert_eq!(fmt(&out), out);
+        let cond = "fn f(a $bool) -> $bool { return aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa && bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb && cccccccccccccccccccccccccccccccccccc && ddddddddddddd; }";
+        let out = fmt(cond);
+        assert!(out.contains("\n        && bbbb"), "{out}");
         assert_eq!(fmt(&out), out);
     }
 
