@@ -94,6 +94,9 @@ impl<'a> Lexer<'a> {
     fn run(&mut self) -> Vec<Token> {
         let mut out: Vec<Token> = Vec::new();
         let mut pending_doc: Vec<String> = Vec::new();
+        if self.pos == 0 && self.src.starts_with('\u{feff}') {
+            self.pos += '\u{feff}'.len_utf8(); // BOM de UTF-8
+        }
         loop {
             // espacios
             while let Some(c) = self.peek() {
