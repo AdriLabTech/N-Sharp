@@ -144,7 +144,7 @@ Detalles en [docs/arquitectura.md](docs/arquitectura.md).
 ## Desarrollo
 
 ```sh
-cargo test        # unitarias + 26 ejemplos + 40 programas inválidos + CLI + formateador
+cargo test        # unitarias + 26 ejemplos + 42 programas inválidos + CLI + formateador
 ```
 
 ## Documentación
