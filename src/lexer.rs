@@ -49,7 +49,6 @@ const SYMS: &[&str] = &[
 
 pub struct Lexer<'a> {
     src: &'a str,
-    bytes: &'a [u8],
     pos: usize,
     end: usize,
     file: u32,
@@ -63,7 +62,7 @@ pub fn lex(file: u32, src: &str, keep_trivia: bool) -> (Vec<Token>, Vec<Diagnost
 
 /// Lexea solo `src[lo..hi]` conservando los offsets del fichero (para interpolaciones).
 pub fn lex_range(file: u32, src: &str, lo: usize, hi: usize, keep_trivia: bool) -> (Vec<Token>, Vec<Diagnostic>) {
-    let mut lx = Lexer { src, bytes: src.as_bytes(), pos: lo, end: hi, file, keep_trivia, diags: vec![] };
+    let mut lx = Lexer { src, pos: lo, end: hi, file, keep_trivia, diags: vec![] };
     let toks = lx.run();
     (toks, lx.diags)
 }
