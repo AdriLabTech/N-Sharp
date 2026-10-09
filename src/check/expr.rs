@@ -499,8 +499,8 @@ impl Checker {
                 let ok = match (&sl, &sr) {
                     (Ty::Null, t) | (t, Ty::Null) => t.is_option() || matches!(t, Ty::Ref(_) | Ty::Null | Ty::Var(_)),
                     _ => self.unify(&lt, &rt) || {
-                        // T con T? : se compara el valor envuelto
-                        if sl.is_option() { self.can_coerce(&rt, &lt) } else if sr.is_option() { self.can_coerce(&lt, &rt) } else { false }
+                        // T con T? : se envuelve el lado no opcional en `Some` para comparar valores del mismo tipo
+                        if sl.is_option() { self.coerce(r, &rt, &lt) } else if sr.is_option() { self.coerce(l, &lt, &rt) } else { false }
                     },
                 };
                 if !ok {

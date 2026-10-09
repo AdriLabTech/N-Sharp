@@ -1,0 +1,10 @@
+fn main() -> nothing {
+    let o $int? = 5;
+    let n $int? = null;
+    println(o == 5);
+    println(5 == o);
+    println(o != 5);
+    println(n == 5);
+    println(n == null);
+    println(o == 6);
+}
