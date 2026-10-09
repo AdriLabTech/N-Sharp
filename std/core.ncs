@@ -27,24 +27,40 @@ pub trait Display {
     fn to_string() -> $string;
 }
 
-impl Comparable for $int { }
-impl Comparable for $float { }
-impl Comparable for $string { }
-impl Comparable for $char { }
-impl Numeric for $int { }
-impl Numeric for $float { }
+impl Comparable for $int {
+}
+
+impl Comparable for $float {
+}
+
+impl Comparable for $string {
+}
+
+impl Comparable for $char {
+}
+
+impl Numeric for $int {
+}
+
+impl Numeric for $float {
+}
 
 # ---------- tipos opacos del runtime ----------
 
-pub struct List<T> { }
-pub struct Map<K, V> { }
-pub struct Set<T> { }
-pub struct Box<T> { }
-pub struct Rc<T> { }
-pub struct Future<T> { }
+pub struct List<T> {}
+
+pub struct Map<K, V> {}
+
+pub struct Set<T> {}
+
+pub struct Box<T> {}
+
+pub struct Rc<T> {}
+
+pub struct Future<T> {}
 
 # seudo-tipo que agrupa los métodos de los arrays `T[N]`
-pub struct Array<T> { }
+pub struct Array<T> {}
 
 pub enum Option<T> {
     Some(T),
@@ -74,7 +90,7 @@ pub fn assert_ne<T>(left T, right T) -> nothing;
 pub fn block_on<T>(future Future<T>) -> T;
 # usada por el REPL para mostrar el valor de una expresión
 pub fn __repl_show<T>(value T) -> nothing;
-pub unsafe fn malloc(size $int) -> *$nothing;
+pub unsafe fn malloc(size $int) -> *nothing;
 pub unsafe fn free<T>(ptr *T) -> nothing;
 
 # ---------- Option ----------
@@ -208,21 +224,37 @@ impl<T, E> Result<T, E> {
 
 impl<T> List<T> {
     pub fn new() -> List<T>;
+
     pub fn length() -> $int;
+
     pub fn is_empty() -> $bool;
+
     pub fn add(item T) -> nothing;
+
     pub fn get(index $int) -> T?;
+
     pub fn first() -> T?;
+
     pub fn last() -> T?;
+
     pub fn insert(index $int, item T) -> nothing;
+
     pub fn remove_at(index $int) -> T;
+
     pub fn pop() -> T?;
+
     pub fn clear() -> nothing;
+
     pub fn contains(item T) -> $bool;
+
     pub fn index_of(item T) -> $int?;
+
     pub fn reverse() -> nothing;
+
     pub fn extend(other List<T>) -> nothing;
+
     pub fn swap(i $int, j $int) -> nothing;
+
     pub fn sort_by(compare (T, T) -> $int) -> nothing;
 
     pub fn map<U>(f (T) -> U) -> List<U> {
@@ -305,12 +337,19 @@ impl List<$float> {
 
 impl<T> Set<T> {
     pub fn new() -> Set<T>;
+
     pub fn add(item T) -> $bool;
+
     pub fn remove(item T) -> $bool;
+
     pub fn contains(item T) -> $bool;
+
     pub fn length() -> $int;
+
     pub fn is_empty() -> $bool;
+
     pub fn clear() -> nothing;
+
     pub fn to_list() -> List<T>;
 }
 
@@ -318,14 +357,23 @@ impl<T> Set<T> {
 
 impl<K, V> Map<K, V> {
     pub fn new() -> Map<K, V>;
+
     pub fn insert(key K, value V) -> V?;
+
     pub fn get(key K) -> V?;
+
     pub fn remove(key K) -> V?;
+
     pub fn contains_key(key K) -> $bool;
+
     pub fn length() -> $int;
+
     pub fn is_empty() -> $bool;
+
     pub fn clear() -> nothing;
+
     pub fn keys() -> List<K>;
+
     pub fn values() -> List<V>;
 
     pub fn get_or(key K, default V) -> V {
@@ -340,15 +388,21 @@ impl<K, V> Map<K, V> {
 
 impl<T> Box<T> {
     pub fn new(value T) -> Box<T>;
+
     pub fn get() -> T;
+
     pub fn set(value T) -> nothing;
 }
 
 impl<T> Rc<T> {
     pub fn new(value T) -> Rc<T>;
+
     pub fn get() -> T;
+
     pub fn set(value T) -> nothing;
+
     pub fn clone() -> Rc<T>;
+
     pub fn strong_count() -> $int;
 }
 
@@ -356,7 +410,9 @@ impl<T> Rc<T> {
 
 impl<T> Array<T> {
     pub fn length() -> $int;
+
     pub fn contains(item T) -> $bool;
+
     pub fn to_list() -> List<T>;
 
     pub fn map<U>(f (T) -> U) -> List<U> {
@@ -392,53 +448,89 @@ impl<T> Array<T> {
 
 impl $string {
     pub fn length() -> $int;
+
     pub fn is_empty() -> $bool;
+
     pub fn to_upper() -> $string;
+
     pub fn to_lower() -> $string;
+
     pub fn trim() -> $string;
+
     pub fn contains(part $string) -> $bool;
+
     pub fn starts_with(prefix $string) -> $bool;
+
     pub fn ends_with(suffix $string) -> $bool;
+
     pub fn split(separator $string) -> List<$string>;
+
     pub fn lines() -> List<$string>;
+
     pub fn replace(from $string, to $string) -> $string;
+
     pub fn substring(start $int, end $int) -> $string;
+
     pub fn char_at(index $int) -> $char?;
+
     pub fn chars() -> List<$char>;
+
     pub fn repeat(times $int) -> $string;
+
     pub fn index_of(part $string) -> $int?;
+
     pub fn parse_int() -> Result<$int, $string>;
+
     pub fn parse_float() -> Result<$float, $string>;
+
     pub fn to_string() -> $string;
 }
 
 impl $int {
     pub fn to_string() -> $string;
+
     pub fn abs() -> $int;
+
     pub fn min(other $int) -> $int;
+
     pub fn max(other $int) -> $int;
 }
 
 impl $float {
     pub fn to_string() -> $string;
+
     pub fn abs() -> $float;
+
     pub fn floor() -> $float;
+
     pub fn ceil() -> $float;
+
     pub fn round() -> $float;
+
     pub fn sqrt() -> $float;
+
     pub fn min(other $float) -> $float;
+
     pub fn max(other $float) -> $float;
+
     pub fn is_nan() -> $bool;
 }
 
 impl $char {
     pub fn to_string() -> $string;
+
     pub fn is_digit() -> $bool;
+
     pub fn is_alpha() -> $bool;
+
     pub fn is_whitespace() -> $bool;
+
     pub fn is_upper() -> $bool;
+
     pub fn is_lower() -> $bool;
+
     pub fn to_upper() -> $char;
+
     pub fn to_lower() -> $char;
 }
 

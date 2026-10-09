@@ -1,6 +1,6 @@
 # Módulo `thread`: hilos cooperativos del backend intérprete (ver docs/divergencias.md).
 
-pub struct JoinHandle<T> { }
+pub struct JoinHandle<T> {}
 
 impl<T> JoinHandle<T> {
     /// Espera a que termine el hilo y devuelve su resultado.

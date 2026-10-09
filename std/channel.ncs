@@ -1,7 +1,8 @@
 # Módulo `channel`: canales entre hilos.
 
-pub struct Sender<T> { }
-pub struct Receiver<T> { }
+pub struct Sender<T> {}
+
+pub struct Receiver<T> {}
 
 /// Crea un canal: `(tx, rx) := channel.new();`
 pub fn new<T>() -> (Sender<T>, Receiver<T>);
@@ -14,5 +15,6 @@ impl<T> Receiver<T> {
     /// Espera un valor; `null` si no hay más emisores ni mensajes pendientes.
     pub fn recv() -> T?;
     /// Devuelve un valor si ya hay uno disponible.
+
     pub fn try_recv() -> T?;
 }

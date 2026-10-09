@@ -3,15 +3,8 @@ fn main() -> nothing {
     numbers.add(1);
     numbers.add(2);
     numbers.add(3);
-    let scores = map {
-        "Adrian": 100,
-        "Carlos": 80
-    };
-    let unique = set {
-        1,
-        2,
-        3
-    };
+    let scores = map { "Adrian": 100, "Carlos": 80 };
+    let unique = set { 1, 2, 3 };
     println(numbers[0]);
     println(scores["Adrian"]);
     println(unique);
