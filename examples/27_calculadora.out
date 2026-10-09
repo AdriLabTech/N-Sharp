@@ -1,0 +1,8 @@
+1 + 2 * 3 = 7.0
+(1 + 2) * 3 = 9.0
+10 / 4 - 1 = 1.5
+-(2 + 3) * 2 = -10.0
+1 / 0 -> error: división por cero
+2 + -> error: expresión inválida
+3 $ 4 -> error: carácter inesperado '$'
+((2)) = 2.0

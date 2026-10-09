@@ -1,0 +1,80 @@
+import math;
+
+fn sieve(limit $int) -> List<$int> {
+    let flags List<$bool>;
+    loop (i := 0; i <= limit; i++) {
+        flags.add(true);
+    }
+    let primes List<$int>;
+    loop (i := 2; i <= limit; i++) {
+        if flags[i] {
+            primes.add(i);
+            loop (j := i * i; j <= limit; j += i) {
+                flags[j] = false;
+            }
+        }
+    }
+    return primes;
+}
+
+fn fib_memo(n $int, memo &Map<$int, $int>) -> $int {
+    if n < 2 {
+        return n;
+    }
+    match memo.get(n) {
+        Some(v) => return v;
+        None => {}
+    }
+    r := fib_memo(n - 1, memo) + fib_memo(n - 2, memo);
+    memo.insert(n, r);
+    return r;
+}
+
+fn gcd(a $int, b $int) -> $int {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+fn bubble_sort(items List<$int>) -> List<$int> {
+    n := items.length();
+    loop (i := 0; i < n; i++) {
+        loop (j := 0; j < n - i - 1; j++) {
+            if items[j] > items[j + 1] {
+                items.swap(j, j + 1);
+            }
+        }
+    }
+    return items;
+}
+
+fn is_palindrome(s $string) -> $bool {
+    chars := s.to_lower().chars();
+    i := 0;
+    j := chars.length() - 1;
+    while i < j {
+        if chars[i] != chars[j] {
+            return false;
+        }
+        i++;
+        j--;
+    }
+    return true;
+}
+
+fn main() -> nothing {
+    println(sieve(50));
+    let memo Map<$int, $int>;
+    println(fib_memo(60, &memo));
+    println(gcd(1071, 462));
+    println(bubble_sort([5, 2, 9, 1, 5, 6].to_list()));
+    println(is_palindrome("Anilina"));
+    println(is_palindrome("N#"));
+    println(math.sqrt(144) as! $int);
+    words := "el veloz murciélago hindú comía feliz cardillo".split(" ");
+    longest := "";
+    loop (w : words) {
+        if w.length() > longest.length() {
+            longest = w;
+        }
+    }
+    println(longest);
+}
