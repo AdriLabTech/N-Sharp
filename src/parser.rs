@@ -462,7 +462,7 @@ impl<'a> Parser<'a> {
         let (trait_, target) = if self.eat_kw_for() { (Some(first), self.type_atom()?) } else { (None, first) };
         self.expect_sym("{")?;
         let methods = self.methods_until_brace()?;
-        Ok(ImplDecl { generics, trait_, target, methods, span: start.to(self.prev_span()) })
+        Ok(ImplDecl { key: String::new(), trait_key: None, generics, trait_, target, methods, span: start.to(self.prev_span()) })
     }
 
     fn eat_kw_for(&mut self) -> bool {
@@ -985,7 +985,7 @@ impl<'a> Parser<'a> {
                     }
                     let end = self.expect_sym("}")?;
                     let sp = e.span.to(end);
-                    e = Expr { kind: ExprKind::StructLit { path, fields }, span: sp };
+                    e = Expr { kind: ExprKind::StructLit { path, fields, key: String::new() }, span: sp };
                 }
                 _ => break,
             }
@@ -1178,10 +1178,10 @@ impl<'a> Parser<'a> {
                         if !self.eat_sym(",") { break; }
                     }
                     let end = self.expect_sym(")")?;
-                    return Ok(Pattern::Variant { path, args: Some(args), span: start.to(end) });
+                    return Ok(Pattern::Variant { path, args: Some(args), span: start.to(end), res: None });
                 }
                 if path.len() > 1 || path[0].name == "None" {
-                    return Ok(Pattern::Variant { path, args: None, span: start.to(self.prev_span()) });
+                    return Ok(Pattern::Variant { path, args: None, span: start.to(self.prev_span()), res: None });
                 }
                 let name = path.pop().unwrap();
                 let ty = if matches!(self.tok(), Tok::Prim(_) | Tok::Ident(_) | Tok::Sym("&")) && !self.at_ident("if") {

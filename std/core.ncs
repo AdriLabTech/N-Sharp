@@ -1,0 +1,417 @@
+# Prelude de N#: tipos, traits y funciones siempre disponibles.
+# Las funciones sin cuerpo son intrínsecas: las implementa el runtime del backend.
+
+# ---------- traits ----------
+
+/// Tipos con orden total. Los primitivos lo implementan; un tipo propio define `compare`.
+pub trait Comparable {
+    fn compare(other Self) -> $int;
+}
+
+/// Tipos numéricos (`$int` y `$float`).
+pub trait Numeric {
+}
+
+/// Tipos que se pueden recorrer con `loop (x : valor)`; `items` entrega los elementos.
+pub trait Iterable<T> {
+    fn items() -> List<T>;
+}
+
+/// Destructor personalizado: se invoca al salir de ámbito (RAII).
+pub trait Drop {
+    fn drop() -> nothing;
+}
+
+/// Representación textual personalizada (usada por `println` y la interpolación).
+pub trait Display {
+    fn to_string() -> $string;
+}
+
+impl Comparable for $int { }
+impl Comparable for $float { }
+impl Comparable for $string { }
+impl Comparable for $char { }
+impl Numeric for $int { }
+impl Numeric for $float { }
+
+# ---------- tipos opacos del runtime ----------
+
+pub struct List<T> { }
+pub struct Map<K, V> { }
+pub struct Set<T> { }
+pub struct Box<T> { }
+pub struct Rc<T> { }
+pub struct Future<T> { }
+
+# seudo-tipo que agrupa los métodos de los arrays `T[N]`
+pub struct Array<T> { }
+
+pub enum Option<T> {
+    Some(T),
+    None
+}
+
+pub enum Result<T, E> {
+    Ok(T),
+    Error(E)
+}
+
+# ---------- funciones globales ----------
+
+pub fn println() -> nothing;
+pub fn println<T>(value T) -> nothing;
+pub fn print<T>(value T) -> nothing;
+pub fn eprintln<T>(value T) -> nothing;
+pub fn eprint<T>(value T) -> nothing;
+pub fn input() -> $string;
+pub fn readFile(path $string) -> Result<$string, $string>;
+pub fn writeFile(path $string, data $string) -> Result<nothing, $string>;
+pub fn args() -> List<$string>;
+pub fn env(name $string) -> $string?;
+pub fn to_string<T>(value T) -> $string;
+pub fn assert_eq<T>(left T, right T) -> nothing;
+pub fn assert_ne<T>(left T, right T) -> nothing;
+pub fn block_on<T>(future Future<T>) -> T;
+pub unsafe fn malloc(size $int) -> *$nothing;
+pub unsafe fn free<T>(ptr *T) -> nothing;
+
+# ---------- Option ----------
+
+impl<T> Option<T> {
+    pub fn is_some() -> $bool {
+        return match self {
+            Some(_) => true;
+            None => false;
+        };
+    }
+
+    pub fn is_none() -> $bool {
+        return match self {
+            Some(_) => false;
+            None => true;
+        };
+    }
+
+    pub fn unwrap() -> T {
+        return match self {
+            Some(v) => v;
+            None => panic("se llamó a `unwrap` sobre un valor `None`");
+        };
+    }
+
+    pub fn expect(message $string) -> T {
+        return match self {
+            Some(v) => v;
+            None => panic(message);
+        };
+    }
+
+    pub fn unwrap_or(default T) -> T {
+        return match self {
+            Some(v) => v;
+            None => default;
+        };
+    }
+
+    pub fn unwrap_or_else(f () -> T) -> T {
+        return match self {
+            Some(v) => v;
+            None => f();
+        };
+    }
+
+    pub fn map<U>(f (T) -> U) -> U? {
+        return match self {
+            Some(v) => Some(f(v));
+            None => None;
+        };
+    }
+
+    pub fn and_then<U>(f (T) -> U?) -> U? {
+        return match self {
+            Some(v) => f(v);
+            None => None;
+        };
+    }
+
+    pub fn ok_or<E>(err E) -> Result<T, E> {
+        return match self {
+            Some(v) => Ok(v);
+            None => Error(err);
+        };
+    }
+}
+
+# ---------- Result ----------
+
+impl<T, E> Result<T, E> {
+    pub fn is_ok() -> $bool {
+        return match self {
+            Ok(_) => true;
+            Error(_) => false;
+        };
+    }
+
+    pub fn is_error() -> $bool {
+        return match self {
+            Ok(_) => false;
+            Error(_) => true;
+        };
+    }
+
+    pub fn unwrap() -> T {
+        return match self {
+            Ok(v) => v;
+            Error(e) => panic("se llamó a `unwrap` sobre un `Error`: {e}");
+        };
+    }
+
+    pub fn expect(message $string) -> T {
+        return match self {
+            Ok(v) => v;
+            Error(e) => panic("{message}: {e}");
+        };
+    }
+
+    pub fn unwrap_or(default T) -> T {
+        return match self {
+            Ok(v) => v;
+            Error(_) => default;
+        };
+    }
+
+    pub fn map<U>(f (T) -> U) -> Result<U, E> {
+        return match self {
+            Ok(v) => Ok(f(v));
+            Error(e) => Error(e);
+        };
+    }
+
+    pub fn map_error<F>(f (E) -> F) -> Result<T, F> {
+        return match self {
+            Ok(v) => Ok(v);
+            Error(e) => Error(f(e));
+        };
+    }
+
+    pub fn ok() -> T? {
+        return match self {
+            Ok(v) => Some(v);
+            Error(_) => None;
+        };
+    }
+}
+
+# ---------- List ----------
+
+impl<T> List<T> {
+    pub fn new() -> List<T>;
+    pub fn length() -> $int;
+    pub fn is_empty() -> $bool;
+    pub fn add(item T) -> nothing;
+    pub fn get(index $int) -> T?;
+    pub fn first() -> T?;
+    pub fn last() -> T?;
+    pub fn insert(index $int, item T) -> nothing;
+    pub fn remove_at(index $int) -> T;
+    pub fn pop() -> T?;
+    pub fn clear() -> nothing;
+    pub fn contains(item T) -> $bool;
+    pub fn index_of(item T) -> $int?;
+    pub fn reverse() -> nothing;
+    pub fn extend(other List<T>) -> nothing;
+    pub fn swap(i $int, j $int) -> nothing;
+    pub fn sort_by(compare (T, T) -> $int) -> nothing;
+
+    pub fn map<U>(f (T) -> U) -> List<U> {
+        result := List.new();
+        loop (x : self) {
+            result.add(f(x));
+        }
+        return result;
+    }
+
+    pub fn filter(f (T) -> $bool) -> List<T> {
+        result := List.new();
+        loop (x : self) {
+            if f(x) {
+                result.add(x);
+            }
+        }
+        return result;
+    }
+
+    pub fn for_each(f (T) -> nothing) -> nothing {
+        loop (x : self) {
+            f(x);
+        }
+    }
+
+    pub fn reduce<A>(init A, f (A, T) -> A) -> A {
+        acc := init;
+        loop (x : self) {
+            acc = f(acc, x);
+        }
+        return acc;
+    }
+
+    pub fn any(f (T) -> $bool) -> $bool {
+        loop (x : self) {
+            if f(x) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn all(f (T) -> $bool) -> $bool {
+        loop (x : self) {
+            if !f(x) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    pub fn find(f (T) -> $bool) -> T? {
+        loop (x : self) {
+            if f(x) {
+                return Some(x);
+            }
+        }
+        return None;
+    }
+}
+
+impl<T: Comparable> List<T> {
+    pub fn sort() -> nothing;
+}
+
+impl List<$string> {
+    pub fn join(separator $string) -> $string;
+}
+
+impl List<$int> {
+    pub fn sum() -> $int;
+}
+
+impl List<$float> {
+    pub fn sum() -> $float;
+}
+
+# ---------- Set ----------
+
+impl<T> Set<T> {
+    pub fn new() -> Set<T>;
+    pub fn add(item T) -> $bool;
+    pub fn remove(item T) -> $bool;
+    pub fn contains(item T) -> $bool;
+    pub fn length() -> $int;
+    pub fn is_empty() -> $bool;
+    pub fn clear() -> nothing;
+    pub fn to_list() -> List<T>;
+}
+
+# ---------- Map ----------
+
+impl<K, V> Map<K, V> {
+    pub fn new() -> Map<K, V>;
+    pub fn insert(key K, value V) -> V?;
+    pub fn get(key K) -> V?;
+    pub fn remove(key K) -> V?;
+    pub fn contains_key(key K) -> $bool;
+    pub fn length() -> $int;
+    pub fn is_empty() -> $bool;
+    pub fn clear() -> nothing;
+    pub fn keys() -> List<K>;
+    pub fn values() -> List<V>;
+
+    pub fn get_or(key K, default V) -> V {
+        return match self.get(key) {
+            Some(v) => v;
+            None => default;
+        };
+    }
+}
+
+# ---------- Box y Rc ----------
+
+impl<T> Box<T> {
+    pub fn new(value T) -> Box<T>;
+    pub fn get() -> T;
+    pub fn set(value T) -> nothing;
+}
+
+impl<T> Rc<T> {
+    pub fn new(value T) -> Rc<T>;
+    pub fn get() -> T;
+    pub fn set(value T) -> nothing;
+    pub fn clone() -> Rc<T>;
+    pub fn strong_count() -> $int;
+}
+
+# ---------- arrays ----------
+
+impl<T> Array<T> {
+    pub fn length() -> $int;
+    pub fn contains(item T) -> $bool;
+    pub fn to_list() -> List<T>;
+}
+
+# ---------- primitivos ----------
+
+impl $string {
+    pub fn length() -> $int;
+    pub fn is_empty() -> $bool;
+    pub fn to_upper() -> $string;
+    pub fn to_lower() -> $string;
+    pub fn trim() -> $string;
+    pub fn contains(part $string) -> $bool;
+    pub fn starts_with(prefix $string) -> $bool;
+    pub fn ends_with(suffix $string) -> $bool;
+    pub fn split(separator $string) -> List<$string>;
+    pub fn lines() -> List<$string>;
+    pub fn replace(from $string, to $string) -> $string;
+    pub fn substring(start $int, end $int) -> $string;
+    pub fn char_at(index $int) -> $char?;
+    pub fn chars() -> List<$char>;
+    pub fn repeat(times $int) -> $string;
+    pub fn index_of(part $string) -> $int?;
+    pub fn parse_int() -> Result<$int, $string>;
+    pub fn parse_float() -> Result<$float, $string>;
+    pub fn to_string() -> $string;
+}
+
+impl $int {
+    pub fn to_string() -> $string;
+    pub fn abs() -> $int;
+    pub fn min(other $int) -> $int;
+    pub fn max(other $int) -> $int;
+}
+
+impl $float {
+    pub fn to_string() -> $string;
+    pub fn abs() -> $float;
+    pub fn floor() -> $float;
+    pub fn ceil() -> $float;
+    pub fn round() -> $float;
+    pub fn sqrt() -> $float;
+    pub fn min(other $float) -> $float;
+    pub fn max(other $float) -> $float;
+    pub fn is_nan() -> $bool;
+}
+
+impl $char {
+    pub fn to_string() -> $string;
+    pub fn is_digit() -> $bool;
+    pub fn is_alpha() -> $bool;
+    pub fn is_whitespace() -> $bool;
+    pub fn is_upper() -> $bool;
+    pub fn is_lower() -> $bool;
+    pub fn to_upper() -> $char;
+    pub fn to_lower() -> $char;
+}
+
+impl $bool {
+    pub fn to_string() -> $string;
+}

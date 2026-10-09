@@ -152,7 +152,8 @@ pub enum ExprKind {
     Tuple(Vec<Expr>),
     Map(Vec<(Expr, Expr)>),
     Set(Vec<Expr>),
-    StructLit { path: Vec<Ident>, fields: Vec<(Ident, Expr)> },
+    /// `key` lo rellena el checker (nombre calificado del struct).
+    StructLit { path: Vec<Ident>, fields: Vec<(Ident, Expr)>, key: String },
     If { cond: Box<Expr>, then: Block, els: Option<Box<Expr>> },
     Match { scrut: Box<Expr>, arms: Vec<MatchArm> },
     Closure { params: Vec<ClosureParam>, ret: Option<TypeExpr>, body: Box<Expr> },
@@ -169,6 +170,12 @@ pub enum ExprKind {
     Asm(String),
     /// Insertado por el checker: coerción implícita `T` → `Option<T>`.
     SomeWrap(Box<Expr>),
+    /// Resuelto por el checker: función, constante o static de un módulo.
+    Global { module: usize, name: String },
+    /// Resuelto por el checker: función asociada `Tipo.nombre`.
+    TypeStatic { key: String, name: String },
+    /// Resuelto por el checker: variante de enum (con o sin datos).
+    VariantRef { enum_key: String, variant: String },
 }
 
 #[derive(Clone, Debug)]
@@ -204,7 +211,7 @@ pub enum Pattern {
     Wild(Span),
     Bind { name: Ident, ty: Option<TypeExpr> },
     Lit(Box<Expr>),
-    Variant { path: Vec<Ident>, args: Option<Vec<Pattern>>, span: Span },
+    Variant { path: Vec<Ident>, args: Option<Vec<Pattern>>, span: Span, res: Option<(String, String)> },
     Tuple(Vec<Pattern>, Span),
 }
 
@@ -298,6 +305,9 @@ pub struct TraitDecl {
 
 #[derive(Clone, Debug)]
 pub struct ImplDecl {
+    /// Rellenados por el checker: clave del tipo destino y del trait.
+    pub key: String,
+    pub trait_key: Option<String>,
     pub generics: Vec<GenericParam>,
     pub trait_: Option<TypeExpr>,
     pub target: TypeExpr,
@@ -358,4 +368,87 @@ pub struct Item {
 #[derive(Clone, Debug, Default)]
 pub struct Module {
     pub items: Vec<Item>,
+}
+
+impl Block {
+    /// Recorre en profundidad todas las expresiones del bloque (incluidas las de sentencias).
+    pub fn walk(&self, f: &mut dyn FnMut(&Expr)) {
+        for s in &self.stmts {
+            match &s.kind {
+                StmtKind::Let { init, .. } => {
+                    if let Some(e) = init { e.walk(f); }
+                }
+                StmtKind::Destructure { init, .. } => init.walk(f),
+                StmtKind::Expr(e) => e.walk(f),
+            }
+        }
+        if let Some(t) = &self.tail {
+            t.walk(f);
+        }
+    }
+}
+
+impl Expr {
+    /// Visita esta expresión y todas las subexpresiones (preorden).
+    pub fn walk(&self, f: &mut dyn FnMut(&Expr)) {
+        f(self);
+        use ExprKind::*;
+        match &self.kind {
+            Int(_) | Float(_) | Bool(_) | Char(_) | Null | Ident(_) | Break | Asm(_) | Global { .. } | TypeStatic { .. }
+            | VariantRef { .. } => {}
+            Str(parts) => {
+                for p in parts {
+                    if let StrPiece::Expr(e) = p { e.walk(f); }
+                }
+            }
+            Unary(_, e) | Try(e) | Await(e) | SomeWrap(e) => e.walk(f),
+            Cast { expr, .. } => expr.walk(f),
+            Field(e, _) => e.walk(f),
+            IncDec { target, .. } => target.walk(f),
+            Binary(_, a, b) | Assign(_, a, b) | Index(a, b) => { a.walk(f); b.walk(f); }
+            Ternary(a, b, c) => { a.walk(f); b.walk(f); c.walk(f); }
+            Call { callee, args } => { callee.walk(f); for a in args { a.walk(f); } }
+            Slice { base, lo, hi } => {
+                base.walk(f);
+                if let Some(e) = lo { e.walk(f); }
+                if let Some(e) = hi { e.walk(f); }
+            }
+            Array(v) | Tuple(v) | Set(v) => for e in v { e.walk(f); },
+            Map(v) => for (k, e) in v { k.walk(f); e.walk(f); },
+            StructLit { fields, .. } => for (_, e) in fields { e.walk(f); },
+            If { cond, then, els } => {
+                cond.walk(f);
+                then.walk(f);
+                if let Some(e) = els { e.walk(f); }
+            }
+            Match { scrut, arms } => {
+                scrut.walk(f);
+                for a in arms {
+                    if let Some(g) = &a.guard { g.walk(f); }
+                    a.body.walk(f);
+                }
+            }
+            Closure { body, .. } => body.walk(f),
+            Block(b) | Unsafe(b) => b.walk(f),
+            Return(e) => if let Some(e) = e { e.walk(f); },
+            While { cond, body } => { cond.walk(f); body.walk(f); }
+            Loop { kind, body } => {
+                match kind {
+                    LoopKind::C { init, cond, update } => {
+                        if let Some(s) = init {
+                            match &s.kind {
+                                StmtKind::Let { init: Some(e), .. } => e.walk(f),
+                                StmtKind::Expr(e) => e.walk(f),
+                                _ => {}
+                            }
+                        }
+                        if let Some(e) = cond { e.walk(f); }
+                        if let Some(e) = update { e.walk(f); }
+                    }
+                    LoopKind::Each { iter, .. } => iter.walk(f),
+                }
+                body.walk(f);
+            }
+        }
+    }
 }
