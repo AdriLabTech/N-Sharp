@@ -7,7 +7,7 @@ pub fn fmt_float(f: f64) -> String {
         "NaN".into()
     } else if f.is_infinite() {
         if f > 0.0 { "inf".into() } else { "-inf".into() }
-    } else if f == f.trunc() && f.abs() < 1e15 {
+    } else if f == f.trunc() {
         format!("{f:.1}")
     } else {
         format!("{f}")
