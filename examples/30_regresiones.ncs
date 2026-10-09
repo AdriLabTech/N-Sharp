@@ -1,0 +1,38 @@
+struct G {
+    name $string;
+}
+
+impl Drop for G {
+    fn drop() -> nothing {
+        println("drop {self.name}");
+    }
+}
+
+fn r(x $int?) -> $string {
+    return "opt";
+}
+
+fn r(x $int) -> $string {
+    return "int";
+}
+
+fn k() -> $int {
+    println("k");
+    return 1;
+}
+
+fn main() -> nothing {
+    println(r(1));
+    let m Map<$int, $int>;
+    let i = 0;
+    m[i++] = 1;
+    m[k()] = 5;
+    println(i);
+    let a = G { name: "a" };
+    let f = () -> nothing {
+        println("x");
+    };
+    f();
+    println(- -i);
+    println("end");
+}

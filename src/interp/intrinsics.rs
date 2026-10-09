@@ -127,6 +127,7 @@ fn format_c(it: &mut Interp, fmt: &str, args: &[Value]) -> R<String> {
             'p' => it.display(&arg)?,
             other => format!("%{other}"),
         };
+        let width = width.min(10_000);
         let padded = if body.chars().count() < width {
             let pad = " ".repeat(width - body.chars().count());
             if left { format!("{body}{pad}") } else { format!("{pad}{body}") }
@@ -277,6 +278,9 @@ pub fn table() -> HashMap<&'static str, IntrinsicFn> {
         let n = a[0].as_int();
         if n <= 0 {
             return it.panic("malloc requiere un tamaño positivo");
+        }
+        if n > 1 << 24 {
+            return it.panic("malloc: tamaño excesivo para el montón simulado");
         }
         it.heap.push(Some((0..n).map(|_| cell(Value::Int(0))).collect()));
         Ok(Value::Ptr(it.heap.len(), 0))
@@ -594,6 +598,10 @@ pub fn table() -> HashMap<&'static str, IntrinsicFn> {
     reg!("$string.repeat", |it, r, a| {
         if a[0].as_int() < 0 {
             return it.panic("repeat con un número negativo");
+        }
+        let total = s_of(&this(&r)?.get().map_err(Ctl::Panic)?).len() as u128 * a[0].as_int() as u128;
+        if total > 1 << 28 {
+            return it.panic("repeat: el resultado sería demasiado grande");
         }
         Ok(Value::str(s_of(&this(&r)?.get().map_err(Ctl::Panic)?).repeat(a[0].as_int() as usize)))
     });

@@ -86,6 +86,9 @@ impl Checker {
                         let sc = TyScope { module: mi, generics: vec![], self_ty: None };
                         let ty = self.resolve_type(&c.ty, &sc);
                         let is_static = matches!(it.kind, ItemKind::Static(_));
+                        if c.is_pub || self.mod_std[mi] {
+                            self.pub_consts.insert((mi, c.name.name.clone()));
+                        }
                         if self.mods[mi].consts.insert(c.name.name.clone(), (ty, is_static)).is_some() {
                             self.err(c.name.span, format!("`{}` está definido más de una vez", c.name.name));
                         }

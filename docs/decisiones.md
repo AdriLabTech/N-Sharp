@@ -75,3 +75,7 @@ NCompiler, qué extensiones menores añade y qué límites tiene la implementaci
 - **`List<$float>.sum()`** de una lista vacía devuelve `0` (entero) porque el runtime no conoce el tipo de los elementos.
 - **REPL:** `static` y los efectos secundarios de las declaraciones no se conservan entre líneas (cada línea se verifica
   junto con el historial, pero solo se ejecuta lo nuevo; las variables sí persisten).
+- **Sobrecargas en ejecución:** se elige la más específica entre las aplicables (tipo concreto > referencia > opcional/unión > genérico). Dos tipos con el mismo nombre en módulos distintos se distinguen en compilación, pero la etiqueta de ejecución usa el nombre corto, así que sobrecargar una misma función con `a.P` y `b.P` puede resolver la equivocada.
+- **Valores cíclicos:** un `Rc` que se contiene a sí mismo no se puede mostrar ni comparar (desbordamiento de pila nativo) y, como en cualquier conteo de referencias, no se libera. Listas enlazadas de millones de nodos agotan la pila al destruirse.
+- **Claves de `Map`/`Set`:** el compilador no comprueba que el tipo sea «hasheable»; usar `Box`, `Rc`, funciones o conjuntos como clave falla en ejecución con un pánico. `0.0` y `-0.0` son claves distintas.
+- **`Map.remove`** es O(n).

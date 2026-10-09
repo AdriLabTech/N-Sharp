@@ -346,7 +346,8 @@ impl Checker {
     /// Tipo de una función/constante de módulo usada como valor; reescribe el nodo a `Global`.
     pub(super) fn global_member_value(&mut self, e: &mut Expr, m: usize, item: &str, exp: Option<&Ty>) -> Option<Ty> {
         if let Some((ty, _)) = self.mods[m].consts.get(item).cloned() {
-            self.check_visible(m, true, item, e.span);
+            let is_pub = self.pub_consts.contains(&(m, item.to_string()));
+            self.check_visible(m, is_pub, item, e.span);
             e.kind = ExprKind::Global { module: m, name: item.to_string() };
             return Some(ty);
         }
@@ -626,13 +627,44 @@ impl Checker {
                     }
                 }
             }
-            ExprKind::Field(..) | ExprKind::Index(..) => self.check_expr(e, None),
+            ExprKind::Field(..) | ExprKind::Index(..) => {
+                let t = self.check_expr(e, None);
+                if !self.rooted_in_place(e) {
+                    self.err_label(span, "la parte izquierda de la asignación no es modificable", "es un valor temporal, no una variable, campo ni elemento");
+                } else if let Some(c) = self.const_root(e) {
+                    self.err_label(span, format!("`{c}` es una constante y no se puede modificar"), "`const` es inmutable");
+                }
+                if matches!(e.kind, ExprKind::Index(..)) && self.last_index_base.take().is_some_and(|b| self.shallow(&b) == Ty::Str) {
+                    self.err_label(span, "los strings son inmutables: no se puede asignar a un carácter", "asignación a un elemento de `$string`");
+                }
+                t
+            }
             ExprKind::Unary(UnOp::Deref, _) => self.check_expr(e, None),
             _ => {
                 self.err_label(span, "la parte izquierda de la asignación no es modificable", "no es una variable, campo ni elemento");
                 self.check_expr(e, None);
                 Ty::Error
             }
+        }
+    }
+
+    /// ¿La expresión nace de una variable, `static`, desreferencia o campo/índice de alguna de ellas?
+    fn rooted_in_place(&self, e: &Expr) -> bool {
+        match &e.kind {
+            ExprKind::Ident(_) | ExprKind::Global { .. } | ExprKind::Unary(UnOp::Deref, _) => true,
+            ExprKind::Field(b, _) | ExprKind::Index(b, _) => self.rooted_in_place(b),
+            _ => false,
+        }
+    }
+
+    fn const_root(&self, e: &Expr) -> Option<String> {
+        match &e.kind {
+            ExprKind::Global { module, name } => match self.mods[*module].consts.get(name) {
+                Some((_, false)) => Some(name.clone()),
+                _ => None,
+            },
+            ExprKind::Field(b, _) | ExprKind::Index(b, _) => self.const_root(b),
+            _ => None,
         }
     }
 
@@ -1110,6 +1142,7 @@ impl Checker {
         let bt = self.check_expr(base, None);
         let mut r = self.shallow(&bt);
         while let Ty::Ref(i) = r.clone() { r = self.shallow(&i); }
+        self.last_index_base = Some(r.clone());
         match r {
             Ty::Tuple(tys) => {
                 let it = self.check_expr(idx, Some(&Ty::Int));

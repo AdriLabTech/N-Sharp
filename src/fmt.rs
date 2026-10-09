@@ -25,6 +25,8 @@ pub struct Fmt<'a> {
     prev_end: usize,
     /// Columnas ya ocupadas en la línea antes de la expresión (p. ej. `x := `).
     prefix: usize,
+    /// Dentro de una cabecera (`if`, `while`, `match`, `loop`): los literales de struct van entre paréntesis.
+    header: bool,
 }
 
 /// Formatea un fichero fuente completo. Devuelve los diagnósticos de sintaxis si no se puede parsear.
@@ -41,7 +43,7 @@ pub fn format_source(src: &str) -> Result<String, Vec<Diagnostic>> {
             _ => None,
         })
         .collect();
-    let mut f = Fmt { src, comments, ci: 0, out: String::new(), indent: 0, prev_end: 0, prefix: 0 };
+    let mut f = Fmt { src, comments, ci: 0, out: String::new(), indent: 0, prev_end: 0, prefix: 0, header: false };
     f.module(&module);
     let mut out = f.out;
     while out.ends_with("\n\n") {
@@ -401,9 +403,11 @@ impl<'a> Fmt<'a> {
             return "{}".into();
         }
         let saved = std::mem::take(&mut self.out);
+        let hdr = std::mem::replace(&mut self.header, false);
         self.indent += 1;
         self.block_body(b);
         self.indent -= 1;
+        self.header = hdr;
         let body = std::mem::replace(&mut self.out, saved);
         format!("{{\n{body}{}}}", self.pad())
     }
@@ -480,7 +484,9 @@ impl<'a> Fmt<'a> {
 
     fn args(&mut self, items: &[Expr], open: &str, close: &str, lead: usize) -> String {
         let prefix = std::mem::take(&mut self.prefix);
+        let hdr = std::mem::replace(&mut self.header, false);
         let parts: Vec<String> = items.iter().map(|a| self.expr(a, 1)).collect();
+        self.header = hdr;
         self.prefix = prefix;
         let flat = format!("{open}{}{close}", parts.join(", "));
         if !flat.contains('\n') && self.indent * 4 + prefix + lead + flat.len() <= WIDTH {
@@ -501,6 +507,13 @@ impl<'a> Fmt<'a> {
         s
     }
 
+    fn header_expr(&mut self, e: &Expr) -> String {
+        let saved = std::mem::replace(&mut self.header, true);
+        let s = self.expr(e, 0);
+        self.header = saved;
+        s
+    }
+
     fn expr(&mut self, e: &Expr, min: u8) -> String {
         use ExprKind::*;
         let s = match &e.kind {
@@ -517,7 +530,8 @@ impl<'a> Fmt<'a> {
             Unary(op, x) => {
                 let sym = match op { UnOp::Neg => "-", UnOp::Not => "!", UnOp::BitNot => "~", UnOp::Ref => "&", UnOp::Deref => "*" };
                 let inner = self.expr(x, 15);
-                format!("{sym}{inner}")
+                let clash = (sym == "-" && inner.starts_with('-')) || (sym == "&" && inner.starts_with('&'));
+                if clash { format!("{sym} {inner}") } else { format!("{sym}{inner}") }
             }
             Await(x) => format!("await {}", self.expr(x, 15)),
             Binary(op @ (BinOp::And | BinOp::Or), _, _) => {
@@ -598,6 +612,13 @@ impl<'a> Fmt<'a> {
                     }
                 }
             }
+            StructLit { path, fields, .. } if self.header => {
+                self.header = false;
+                let inner = self.expr(e, 0);
+                self.header = true;
+                let _ = (path, fields);
+                format!("({inner})")
+            }
             StructLit { path, fields, .. } => {
                 let name = path.iter().map(|i| i.name.as_str()).collect::<Vec<_>>().join(".");
                 if fields.is_empty() { format!("{name} {{}}") } else {
@@ -613,7 +634,7 @@ impl<'a> Fmt<'a> {
                 }
             }
             If { cond, then, els } => {
-                let c = self.expr(cond, 0);
+                let c = self.header_expr(cond);
                 let t = self.block_str(then);
                 let mut s = format!("if {c} {t}");
                 if let Some(el) = els {
@@ -626,7 +647,7 @@ impl<'a> Fmt<'a> {
                 s
             }
             Match { scrut, arms } => {
-                let sc = self.expr(scrut, 0);
+                let sc = self.header_expr(scrut);
                 let saved = std::mem::take(&mut self.out);
                 self.indent += 1;
                 for a in arms {
@@ -675,7 +696,7 @@ impl<'a> Fmt<'a> {
             Cast { expr, ty, lossy } => format!("{} {} {}", self.expr(expr, 14), if *lossy { "as!" } else { "as" }, type_str(ty)),
             Try(x) => format!("{}?", self.expr(x, 17)),
             While { cond, body } => {
-                let c = self.expr(cond, 0);
+                let c = self.header_expr(cond);
                 let b = self.block_str(body);
                 format!("while {c} {b}")
             }
@@ -699,7 +720,7 @@ impl<'a> Fmt<'a> {
                         if i.is_empty() && c.is_empty() && u.is_empty() { ";;".to_string() } else { format!("{i}; {c}; {u}").trim_end().to_string() }
                     }
                     LoopKind::Each { var, ty, iter } => {
-                        let it = self.expr(iter, 0);
+                        let it = self.header_expr(iter);
                         match ty {
                             Some(t) => format!("{} {} : {it}", var.name, type_str(t)),
                             None => format!("{} : {it}", var.name),

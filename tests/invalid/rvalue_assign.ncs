@@ -1,0 +1,6 @@
+# error: la parte izquierda de la asignación no es modificable
+struct S { a $int; }
+fn mk() -> S { return S { a: 1 }; }
+fn main() -> nothing {
+    mk().a = 5;
+}

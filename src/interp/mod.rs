@@ -45,6 +45,16 @@ pub enum Tag {
     Union(Vec<Tag>),
 }
 
+/// Cuanto más específica la etiqueta, mayor puntuación (para elegir entre sobrecargas aplicables).
+fn tag_specificity(t: &Tag) -> i32 {
+    match t {
+        Tag::Any => 0,
+        Tag::Union(_) | Tag::Opt(_) => 1,
+        Tag::Ref(_) => 2,
+        _ => 3,
+    }
+}
+
 fn tag_of(t: &TypeExpr, generics: &[String]) -> Tag {
     match &t.kind {
         TypeKind::Prim(p) => match p {
@@ -513,7 +523,7 @@ impl Interp {
             _ => self.eval(c.body, &scope),
         };
         self.cur_module = saved;
-        if self.has_drop {
+        if self.has_drop && !is_abort(&r) {
             self.drop_scope(&scope)?;
         }
         self.frames.pop();
@@ -541,9 +551,15 @@ impl Interp {
         let n = args.len();
         let mut fit: Vec<&Rc<FnDef>> = defs.iter().filter(|d| n >= d.required && n <= d.tags.len().max(n)).filter(|d| n <= d.tags.len() || d.decl.variadic).collect();
         if fit.len() > 1 {
-            let exact: Vec<&Rc<FnDef>> = fit.iter().copied().filter(|d| d.tags.iter().zip(args).all(|(t, a)| self.tag_matches(t, a))).collect();
-            if !exact.is_empty() {
-                fit = exact;
+            let mut scored: Vec<(i32, &Rc<FnDef>)> = vec![];
+            for d in &fit {
+                if d.tags.iter().zip(args).all(|(t, a)| self.tag_matches(t, a)) {
+                    let sc: i32 = d.tags.iter().map(tag_specificity).sum();
+                    scored.push((sc, d));
+                }
+            }
+            if let Some(best) = scored.iter().map(|(s, _)| *s).max() {
+                fit = scored.into_iter().filter(|(s, _)| *s == best).map(|(_, d)| d).collect();
             }
         }
         match fit.first() {
@@ -606,7 +622,7 @@ impl Interp {
         let saved = std::mem::replace(&mut self.cur_module, def.module);
         let r = self.eval_block_in(body, &scope);
         self.cur_module = saved;
-        if self.has_drop {
+        if self.has_drop && !is_abort(&r) {
             self.drop_scope(&scope)?;
         }
         self.frames.pop();
@@ -662,7 +678,7 @@ impl Interp {
         }
         let scope = Scope::new(Some(parent.clone()));
         let r = self.eval_block_in(b, &scope);
-        if self.has_drop {
+        if self.has_drop && !is_abort(&r) {
             self.drop_scope(&scope)?;
         }
         r
@@ -703,8 +719,20 @@ impl Interp {
     }
 
     pub fn drop_scope(&mut self, scope: &Rc<Scope>) -> R<()> {
-        if Rc::strong_count(scope) > 1 {
-            // capturado por una clausura: las variables siguen vivas
+        let own_closures = scope
+            .vars
+            .borrow()
+            .iter()
+            .filter(|(_, c)| match &*c.borrow() {
+                Value::Func(f) => match &**f {
+                    FuncVal::Closure(cd) => Rc::strong_count(f) == 1 && Rc::ptr_eq(&cd.env, scope),
+                    _ => false,
+                },
+                _ => false,
+            })
+            .count();
+        if Rc::strong_count(scope) > 1 + own_closures {
+            // capturado por una clausura que escapa: las variables siguen vivas
             return Ok(());
         }
         let vars = std::mem::take(&mut *scope.vars.borrow_mut());
@@ -769,6 +797,11 @@ impl Interp {
         }
         Ok(())
     }
+}
+
+/// Un pánico o `exit` termina el programa sin ejecutar destructores.
+pub(crate) fn is_abort<T>(r: &R<T>) -> bool {
+    matches!(r, Err(Ctl::Panic(_)) | Err(Ctl::Exit(_)))
 }
 
 fn implicit_generics(t: &TypeExpr) -> Vec<String> {

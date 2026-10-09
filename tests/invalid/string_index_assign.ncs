@@ -1,0 +1,5 @@
+# error: los strings son inmutables
+fn main() -> nothing {
+    let s = "abc";
+    s[0] = 'x';
+}

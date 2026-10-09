@@ -1,0 +1,6 @@
+# error: es una constante y no se puede modificar
+struct S { a $int; }
+const C S = S { a: 1 };
+fn main() -> nothing {
+    C.a = 5;
+}

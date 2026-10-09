@@ -205,6 +205,8 @@ pub struct Checker {
     /// Consumido por `check_expr`: la expresión es una sentencia y su valor se descarta.
     discard: bool,
     last_tail_ty: Option<Ty>,
+    last_index_base: Option<Ty>,
+    pub_consts: HashSet<(usize, String)>,
     /// Tipos resueltos de los patrones `x $tipo` (por offset del identificador).
     typed_binds: HashMap<(u32, u32), Ty>,
 }
@@ -239,6 +241,8 @@ pub fn check_program(prog: &mut Program, opts: Options) -> Vec<Diagnostic> {
         impl_of_item: HashMap::new(),
         discard: false,
         last_tail_ty: None,
+        last_index_base: None,
+        pub_consts: HashSet::new(),
         typed_binds: HashMap::new(),
     };
     ck.collect_all(&mut asts);

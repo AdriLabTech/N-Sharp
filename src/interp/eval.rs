@@ -72,9 +72,10 @@ impl Interp {
                 self.binop(*op, &a, &b)
             }
             ExprKind::Assign(op, l, r) => {
-                let rv = self.eval(r, env)?;
-                // camino rápido: variable local
+                let mut early: Option<Value> = None;
+                // camino rápido: variable local (el lado izquierdo no tiene efectos)
                 if let ExprKind::Ident(name) = &l.kind {
+                    let rv = self.eval(r, env)?;
                     if let Some(c) = env.lookup(name) {
                         match op {
                             None => {
@@ -93,19 +94,25 @@ impl Interp {
                             }
                         }
                     }
+                    early = Some(rv);
+                }
+                // `m[k] = v` inserta en mapas (orden: mapa, clave, valor)
+                if let (None, ExprKind::Index(base, idx)) = (op, &l.kind) {
+                    let bp = self.expr_place(base, env)?;
+                    let bp = self.follow_place(bp)?;
+                    if let Value::Map(_) = bp.get().map_err(Ctl::Panic)? {
+                        let iv = self.eval(idx, env)?;
+                        let rv = self.eval(r, env)?;
+                        return self.map_store(&bp, iv, rv).map(|_| Value::Nothing);
+                    }
                 }
                 let place = self.expr_place(l, env)?;
+                let rv = match early {
+                    Some(v) => v,
+                    None => self.eval(r, env)?,
+                };
                 match op {
                     None => {
-                        if let ExprKind::Index(base, idx) = &l.kind {
-                            // `m[k] = v` inserta en mapas
-                            let bp = self.expr_place(base, env)?;
-                            let bp = self.follow_place(bp)?;
-                            if let Value::Map(_) = bp.get().map_err(Ctl::Panic)? {
-                                let iv = self.eval(idx, env)?;
-                                return self.map_store(&bp, iv, rv).map(|_| Value::Nothing);
-                            }
-                        }
                         self.pr(place.set(rv))?;
                     }
                     Some(bop) => {
@@ -222,7 +229,7 @@ impl Interp {
                             }
                         }
                         let r = self.eval(&arm.body, &scope);
-                        if self.has_drop {
+                        if self.has_drop && !is_abort(&r) {
                             self.drop_scope(&scope)?;
                         }
                         return r;
@@ -319,7 +326,7 @@ impl Interp {
                     let scope = Scope::new(Some(env.clone()));
                     scope.declare(&var.name, item);
                     let r = self.eval_block_in(body, &scope);
-                    if self.has_drop {
+                    if self.has_drop && !is_abort(&r) {
                         self.drop_scope(&scope)?;
                     }
                     match r {

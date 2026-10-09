@@ -476,25 +476,25 @@ impl Checker {
         } else {
             let tys: Vec<Ty> = args.iter_mut().map(|a| self.check_expr(a, None)).collect();
             let mut pick = None;
-            for &i in &fit {
-                let s = self.sigs[cands[i].sig].clone();
-                let mut map = cands[i].map.clone();
-                for g in &s.generics {
-                    map.insert(g.name.clone(), self.fresh());
-                }
-                let snap = self.snapshot();
-                let ok = tys.iter().zip(&s.params).all(|(t, p)| {
-                    let p = p.subst(&map);
-                    self.can_coerce(t, &p) && {
-                        // reservar la ligadura para que los genéricos compartidos se comprueben juntos
-                        let _ = self.unify(t, &p);
-                        true
+            // primero sobrecargas que encajan sin coerciones; después las que las necesitan
+            'passes: for exact in [true, false] {
+                for &i in &fit {
+                    let s = self.sigs[cands[i].sig].clone();
+                    let mut map = cands[i].map.clone();
+                    for g in &s.generics {
+                        map.insert(g.name.clone(), self.fresh());
                     }
-                });
-                self.rollback(snap);
-                if ok {
-                    pick = Some(i);
-                    break;
+                    let snap = self.snapshot();
+                    let ok = tys.iter().zip(&s.params).all(|(t, p)| {
+                        let p = p.subst(&map);
+                        let good = if exact { self.unify(t, &p) } else { self.can_coerce(t, &p) && self.unify(t, &p) || self.can_coerce(t, &p) };
+                        good
+                    });
+                    self.rollback(snap);
+                    if ok {
+                        pick = Some(i);
+                        break 'passes;
+                    }
                 }
             }
             prechecked = Some(tys.clone());
