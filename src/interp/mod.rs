@@ -730,7 +730,7 @@ impl Interp {
                         let inner = std::mem::replace(&mut *place.cell.borrow_mut(), Value::Nothing);
                         if let Value::Struct(rc2) = inner {
                             if let Ok(sv) = Rc::try_unwrap(rc2) {
-                                for f in sv.vals.into_iter().rev() { self.drop_value(f)?; }
+                                for f in sv.vals { self.drop_value(f)?; }
                             }
                         }
                         return Ok(());
@@ -738,22 +738,22 @@ impl Interp {
                     return Ok(());
                 }
                 if let Ok(sv) = Rc::try_unwrap(rc) {
-                    for f in sv.vals.into_iter().rev() { self.drop_value(f)?; }
+                    for f in sv.vals { self.drop_value(f)?; }
                 }
             }
             Value::Variant(rc) => {
                 if let Ok(vv) = Rc::try_unwrap(rc) {
-                    for f in vv.vals.into_iter().rev() { self.drop_value(f)?; }
+                    for f in vv.vals { self.drop_value(f)?; }
                 }
             }
             Value::List(rc) | Value::Array(rc) | Value::Tuple(rc) => {
                 if let Ok(vs) = Rc::try_unwrap(rc) {
-                    for f in vs.into_iter().rev() { self.drop_value(f)?; }
+                    for f in vs { self.drop_value(f)?; }
                 }
             }
             Value::Map(rc) | Value::Set(rc) => {
                 if let Ok(m) = Rc::try_unwrap(rc) {
-                    for (k, val) in m.entries.into_iter().rev() {
+                    for (k, val) in m.entries {
                         self.drop_value(val)?;
                         self.drop_value(k)?;
                     }

@@ -28,7 +28,7 @@ NCompiler, qué extensiones menores añade y qué límites tiene la implementaci
   copy-on-write, así que copiar es O(1) hasta que se modifica). Para compartir se usa `&T`, `Box<T>` o `Rc<T>`.
   `&x` es una referencia a la variable `x` (no a su valor); `*r` la desreferencia y puede asignarse (`*r = 5;`).
   `Box<T>` y `Rc<T>` son celdas en el montón: copiar el valor comparte la celda (`===` compara identidad).
-- **RAII / `Drop`:** los destructores se ejecutan al salir del ámbito, en orden inverso de declaración, **solo si el valor
+- **RAII / `Drop`:** los destructores se ejecutan al salir del ámbito, las variables en orden inverso de declaración (campos y elementos de colecciones, de principio a fin, como en Rust), **solo si el valor
   no está compartido** (una variable «movida» a otra no se destruye dos veces). No se destruye al sobrescribir una
   variable, ni los temporales, ni cuando el programa termina por `panic`/`exit`.
 - **Inicialización de colecciones:** `let xs List<$int>;` (sin valor) crea una lista vacía (así lo muestra el §60); lo mismo
