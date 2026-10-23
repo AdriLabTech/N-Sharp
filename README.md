@@ -152,3 +152,7 @@ cargo test        # unitarias + 28 ejemplos + 43 programas inválidos + CLI + fo
 - [Especificación v0.1](docs/especificacion.md) (copia del texto normativo)
 - [Decisiones de implementación y límites](docs/decisiones.md)
 - [Arquitectura](docs/arquitectura.md)
+
+## Comunidad
+
+Dudas, ideas y feedback sobre N# en el [Discord de Low Noise](https://discord.gg/J7yf4CfT3P) (canal `#build`). El devlog en vídeo, en [YouTube](https://www.youtube.com/@Low_Noise-n4e).
