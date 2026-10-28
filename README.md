@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/hero.svg" alt="N-Sharp" width="100%"></p>
+
 # N# (N Sharp)
 
 **N#** es un lenguaje de programación generalista, estáticamente tipado, con inferencia local, RAII,
